@@ -1,4 +1,4 @@
-package com.example.weatherforecast.data.remote
+package com.example.weatherforecast.data.pojo
 
 data class ForecastDataResponse(
     val cnt: Int,

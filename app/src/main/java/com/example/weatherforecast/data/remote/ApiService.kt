@@ -1,5 +1,6 @@
 package com.example.weatherforecast.data.remote
 
+import com.example.weatherforecast.data.pojo.ForecastDataResponse
 import retrofit2.Response
 import retrofit2.http.GET
 

@@ -17,14 +17,19 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.RetrofitHelper
+import com.example.weatherforecast.data.repo.DailyDataRepository
+import com.example.weatherforecast.viewModel.DailyDataViewModel
+import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -37,7 +42,7 @@ class HomePageActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MainScreen()
+           get()
         }
     }
 }
@@ -48,14 +53,6 @@ class HomePageActivity : ComponentActivity() {
     backgroundColor = 0x48319D
 )@Composable
  fun MainScreen(){
-
-    val scope = rememberCoroutineScope()
-    LaunchedEffect(Unit) {
-        scope.launch {
-            get()
-        }
-    }
-
 
     Column (Modifier.fillMaxSize()){
         Row(Modifier
@@ -87,17 +84,12 @@ class HomePageActivity : ComponentActivity() {
     }
 
 }
-suspend fun get(){
-    withContext(Dispatchers.IO) {
-        val api = RetrofitHelper.retrofitInstance.create(ApiService::class.java)
-        try {
-            val response = api.get5DaysEvery3HoursData()
-            if (response.isSuccessful) {
-                Log.d("TAG", "Success: ${response.body()}")
-            }
-        } catch (e: Exception) {
-            Log.e("TAG", "Error fetching weather data", e)
-            return@withContext
-        }
-    }
+@Composable
+fun get(){
+    val viewModel: DailyDataViewModel = viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository()))
+    viewModel.getDailyData()
+    val dailyData = viewModel.dailyData.observeAsState()
+
+    Log.i("TAG", "get: success $dailyData")
+
 }

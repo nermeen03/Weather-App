@@ -17,4 +17,13 @@
     <color name="blue">#578FCA</color>
     <color name="light_blue">#A1E3F9</color>
     <color name="light_green">#D1F8EF</color>
+
+    <color name="primaryLight">#A1E3F9</color>
+    <color name="secondaryLight">#578FCA</color>
+
+    <color name="primaryDark">#7758D1</color>
+    <color name="secondaryDark">#2E335A</color>
+
 </resources>
+
+

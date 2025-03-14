@@ -23,7 +23,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.example.weatherapp.view.home.HomePageActivity"
+            android:name=".view.home.HomePageActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.WeatherForecast">

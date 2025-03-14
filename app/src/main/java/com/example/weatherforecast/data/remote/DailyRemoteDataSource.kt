@@ -1,8 +1,8 @@
 package com.example.weatherforecast.data.remote
 
 import android.util.Log
+import com.example.weatherforecast.data.pojo.CurrentWeatherResponse
 import com.example.weatherforecast.data.pojo.ForecastDataResponse
-import retrofit2.Response
 
 class DailyRemoteDataSource : IDailyRemoteDataSource {
 
@@ -16,6 +16,14 @@ class DailyRemoteDataSource : IDailyRemoteDataSource {
             Log.e("API_ERROR", "Error: ${response.errorBody()?.string()}")
             return null
         }
-
+    }
+    override suspend fun getCurrentWeather(lat:Double,lon:Double):CurrentWeatherResponse?{
+        val response = apiService.getCurrentWeather(lat,lon)
+        if(response.isSuccessful){
+            return response.body()
+        } else {
+            Log.e("API_ERROR", "Error: ${response.errorBody()?.string()}")
+            return null
+        }
     }
 }

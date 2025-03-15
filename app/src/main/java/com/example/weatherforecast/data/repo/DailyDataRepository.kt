@@ -1,8 +1,6 @@
 package com.example.weatherforecast.data.repo
 
-import android.app.Application
-import android.util.Log
-import androidx.room.Room
+
 import com.example.weatherforecast.data.pojo.CurrentWeatherResponse
 import com.example.weatherforecast.data.pojo.ForecastDataResponse
 import com.example.weatherforecast.data.remote.DailyRemoteDataSource
@@ -25,7 +23,7 @@ class DailyDataRepository(private val dailyRemoteDataSource: IDailyRemoteDataSou
     override suspend fun getDailyData(): ForecastDataResponse? {
         return dailyRemoteDataSource?.getDailyData()
     }
-    override suspend fun getCurrentweather(lat:Double,lon:Double):CurrentWeatherResponse?{
+    override suspend fun getCurrentWeather(lat:Double, lon:Double):CurrentWeatherResponse?{
         return dailyRemoteDataSource?.getCurrentWeather(lat, lon)
     }
 }

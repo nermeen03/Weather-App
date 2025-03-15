@@ -28,7 +28,7 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
     }
     fun getCurrentWeather(){
         viewModelScope.launch {
-            dataRepository.getCurrentweather(20.0,10.1)?.let {
+            dataRepository.getCurrentWeather(20.0,10.1)?.let {
                 Log.i("TAG", "getCurrentWeather: $it")
                 mutableCurrentWeather.value = it
             }

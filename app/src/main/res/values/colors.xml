@@ -24,6 +24,8 @@
     <color name="primaryDark">#7758D1</color>
     <color name="secondaryDark">#2E335A</color>
 
+    <color name="dark">#1E1E1E</color>
+
 </resources>
 
 

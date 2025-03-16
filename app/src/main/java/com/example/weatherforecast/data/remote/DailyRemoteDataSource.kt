@@ -8,8 +8,8 @@ class DailyRemoteDataSource : IDailyRemoteDataSource {
 
     private var apiService: ApiService = RetrofitHelper.retrofitInstance.create(ApiService::class.java)
 
-    override suspend fun getDailyData(): ForecastDataResponse? {
-        val response = apiService.get5DaysEvery3HoursData()
+    override suspend fun getDailyData(lat:Double,lon:Double): ForecastDataResponse? {
+        val response = apiService.get5DaysEvery3HoursData(lat, lon)
         if (response.isSuccessful) {
             return response.body()
         } else {

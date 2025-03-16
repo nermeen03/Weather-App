@@ -20,8 +20,8 @@ class DailyDataRepository(private val dailyRemoteDataSource: IDailyRemoteDataSou
             }
         }
     }
-    override suspend fun getDailyData(): ForecastDataResponse? {
-        return dailyRemoteDataSource?.getDailyData()
+    override suspend fun getDailyData(lat:Double,lon:Double): ForecastDataResponse? {
+        return dailyRemoteDataSource?.getDailyData(lat, lon)
     }
     override suspend fun getCurrentWeather(lat:Double, lon:Double):CurrentWeatherResponse?{
         return dailyRemoteDataSource?.getCurrentWeather(lat, lon)

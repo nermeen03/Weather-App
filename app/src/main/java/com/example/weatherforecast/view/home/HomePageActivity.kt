@@ -1,29 +1,30 @@
 package com.example.weatherforecast.view.home
 
 import android.os.Build
+import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,14 +36,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.ImageLoader
+import coil.compose.AsyncImage
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
+import com.example.weatherforecast.MainActivity
 import com.example.weatherforecast.R
 import com.example.weatherforecast.data.pojo.DailyDetails
 import com.example.weatherforecast.data.pojo.HourlyDetails
@@ -78,63 +84,103 @@ fun MainScreen() {
     var temp by remember { mutableDoubleStateOf(0.0) }
     var feelLike by remember { mutableDoubleStateOf(0.0) }
     var weather by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
+    var state by remember { mutableStateOf("") }
     var todayDetails by remember { mutableStateOf<DailyDetails?>(null) }
     var hourlyList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
     var daysList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
 
-    GetWeatherData(
-        updateCurrent = { tempValue, feelLikeValue, weatherValue ->
-            temp = tempValue
-            feelLike = feelLikeValue
-            weather = weatherValue
-        },
-        updateList = { hourly, today, days ->
-            hourlyList = hourly
-            todayDetails = today
-            daysList = days
-        }
-    )
+    val context = LocalContext.current
+    val viewModel: DailyDataViewModel =
+        viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository()))
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        colorResource(id = R.color.primaryLight),
-                        colorResource(id = R.color.secondaryLight)
-                    )
-                )
-            )
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        item {
-            TopWeatherSection(weather, feelLike, temp)
-        }
+    viewModel.isInternetAvailable(context)
+    val internet = viewModel.internet.observeAsState()
 
-        item {
-            LocationSection()
+    if(internet.value == true) {
+        GetWeatherData(
+            updateCurrent = { tempValue, feelLikeValue, weatherValue, locationValue, stateValue ->
+                temp = tempValue
+                feelLike = feelLikeValue
+                weather = weatherValue
+                location = locationValue
+                state = stateValue
+            },
+            updateList = { hourly, today, days ->
+                hourlyList = hourly
+                todayDetails = today
+                daysList = days
+            }
+        )
+        if (temp==0.0) {
+            WaitingGif()
         }
+        else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                item {
+                    TopWeatherSection(weather, feelLike, state)
+                }
 
-        item {
-            HourlyWeatherSection(hourlyList)
-        }
+                item {
+                    WeatherLocationSection(temp, location)
+                }
 
-        item {
-            TodayDetailsSection(todayDetails)
-        }
+                item {
+                    HourlyWeatherSection(hourlyList)
+                }
 
-        item {
-            DailyWeatherSection(daysList)
+                item {
+                    TodayDetailsSection(todayDetails)
+                }
+
+                item {
+                    DailyWeatherSection(daysList)
+                }
+            }
+
         }
+    }else{
+        WaitingGif()
     }
+
 
 }
 
-
 @Composable
-fun TopWeatherSection(weather: String, feelLike: Double, temp: Double) {
+fun WaitingGif() {
+    val context = LocalContext.current
+    val imageLoader = ImageLoader.Builder(context)
+        .components {
+            if (SDK_INT >= 28) {
+                add(ImageDecoderDecoder.Factory())
+            } else {
+                add(GifDecoder.Factory())
+            }
+        }
+        .build()
+    Box(
+        modifier = Modifier
+            .fillMaxSize() ,
+        contentAlignment = Alignment.Center
+    ) {
+        AsyncImage(
+            model = R.raw.waiting,
+            contentDescription = null,
+            imageLoader = imageLoader,
+            Modifier.fillMaxSize()
+        )
+    }
+}
+
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun TopWeatherSection(weather: String, feelLike: Double,state: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
@@ -143,26 +189,46 @@ fun TopWeatherSection(weather: String, feelLike: Double, temp: Double) {
             Text(weather, fontSize = 24.sp, color = Color.White)
             Text("Feels like $feelLike°C", color = Color.White)
         }
+        Column {
+            AsyncImage(
+                model = "https://openweathermap.org/img/wn/$state@2x.png",
+                contentDescription = null,
+                modifier = Modifier.size(60.dp)
+            )
+        }
         Column(horizontalAlignment = Alignment.End) {
             Text("Today", fontSize = 20.sp, color = Color.White)
-            Text("$temp°C", fontSize = 32.sp, color = Color.White, fontWeight = FontWeight.Bold)
+            Text(today, fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-fun LocationSection() {
+fun WeatherLocationSection(temp: Double,location:String) {
     Box(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "Norway, Northland",
-            color = Color.White,
-            fontSize = 16.sp
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "$temp°C",
+                fontSize = 32.sp,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = location,
+                color = Color.White,
+                fontSize = 16.sp
+            )
+        }
     }
+
 
 }
 
@@ -237,7 +303,11 @@ fun HourlyDataCard(details: HourlyDetails) {
             verticalArrangement = Arrangement.Center
         ) {
             Text(details.time, color = colorResource(id = R.color.light_green), fontSize = 14.sp)
-            Icon(Icons.Default.Cloud, contentDescription = null, tint = Color.White)
+            AsyncImage(
+                model = "https://openweathermap.org/img/wn/${details.state}@2x.png",
+                contentDescription = null,
+                modifier = Modifier.size(60.dp)
+            )
             Text("${details.temp}°C", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
@@ -263,84 +333,101 @@ fun DayDataCard(details: HourlyDetails) {
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(text = details.time, color = colorResource(id = R.color.light_green), fontSize = 15.sp, fontWeight = FontWeight.Medium)
-
-            Text(text = "${details.temp}°C", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium,modifier = Modifier.padding(start = 16.dp))
-
-            Column(modifier = Modifier.padding(start = 16.dp)) {
-                Text("Feels like", color = colorResource(id = R.color.light_green), fontSize = 12.sp)
-                Text("${details.feelLike}°C", color = Color.White, fontWeight = FontWeight.Medium)
-            }
-        }
-    }
-
-}
-
-
-
-/*
-@Composable
-fun DayDataCard(details: HourlyDetails) {
-    Card(
-        onClick = {},
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        elevation = CardDefaults.cardElevation(8.dp)
-    ) {
-        Column(
-            modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center
+                .padding(start = 16.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(details.time, color = Color.White)
+                Text(
+                    text = details.time,
+                    color = colorResource(id = R.color.light_green),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    AsyncImage(
+                        model = "https://openweathermap.org/img/wn/${details.state}@2x.png",
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(60.dp)
+                            .align(Alignment.CenterEnd)
+                    )
+                }
 
-                Text("${details.temp}°C", color = Color.White)
             }
 
             Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Feels Like", color = colorResource(id = R.color.light_green))
-                Text("${details.feelLike}°C", color = Color.White)
+                Text(
+                    text = "${details.temp}°C",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Column(modifier = Modifier.padding(start = 16.dp)) {
+                    Text(
+                        text = "Feels like",
+                        color = colorResource(id = R.color.light_green),
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        text = "${details.feelLike}°C",
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }
 }
 
-*/
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun GetWeatherData(
-    updateCurrent: (Double, Double, String) -> Unit,
+    updateCurrent: (Double, Double, String, String, String) -> Unit,
     updateList: (
         MutableList<HourlyDetails>,
         DailyDetails?,
         MutableList<HourlyDetails>) -> Unit){
+    val context = LocalContext.current
     val viewModel: DailyDataViewModel =
         viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository()))
 
     val dailyData = viewModel.dailyData.observeAsState()
     val currentWeather = viewModel.currentWeather.observeAsState()
+    val message = viewModel.message.observeAsState()
+    val currentLocation = MainActivity.LocationManager.locationState.observeAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.getDailyData()
-        viewModel.getCurrentWeather()
+    val lat = currentLocation.value?.first ?: -1.0
+    val long = currentLocation.value?.second ?: -1.0
+
+    LaunchedEffect(lat, long) {
+        viewModel.retryFetchWeather(lat, long)
+
     }
 
-    if (dailyData.value != null) {
+    message.value?.let {
+        Log.i("TAG", "Error: ${message.value}")
+        Toast.makeText(context, message.value, Toast.LENGTH_SHORT).show()
+        viewModel.retryFetchWeather(lat, long)
+    }
+
+
+
+
+    if (dailyData.value != null && currentWeather.value != null && message.value == null) {
         val dailyDataList = dailyData.value!!.list
         val todayWeather = dailyDataList.filter {
             it.dt_txt.startsWith(today)
@@ -359,15 +446,18 @@ fun GetWeatherData(
             val humidity = current.main.humidity
             val speed = current.wind.speed
             val cloud = current.clouds.all
+            val state = current.weather[0].icon
 
-            dailyDetail = DailyDetails(pressure, humidity, speed, cloud)
+            dailyDetail = DailyDetails(pressure, humidity, speed, cloud,state)
         }
 
         todayWeather.forEach{
             val time = it.dt_txt.split(" ")[1].substring(0, 5)
             val temp = it.main.temp
             val feel = it.main.feels_like
-            val hourlyDetail = HourlyDetails(time,temp,feel)
+            val state = it.weather[0].icon
+
+            val hourlyDetail = HourlyDetails(time,temp,feel,state)
             hourlyDetails.add(hourlyDetail)
         }
 
@@ -379,6 +469,8 @@ fun GetWeatherData(
             val time = it.dt_txt
             val temp = it.main.temp
             val feel = it.main.feels_like
+            val state = it.weather[0].icon
+
             if(time.split(" ")[1].substring(0, 5)=="00:00"){
                 val apiDate = LocalDate.parse(time.substring(0, 10))
                 val todayDate = LocalDate.now()
@@ -389,17 +481,21 @@ fun GetWeatherData(
                     else -> apiDate.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
                 }
 
-                val days = HourlyDetails(dayText,temp,feel)
+                val days = HourlyDetails(dayText, temp, feel, state)
                 daysDetails.add(days)
             }
         }
         updateList(hourlyDetails,dailyDetail,daysDetails)
-    }
-    if (currentWeather.value != null) {
+
         val temp = currentWeather.value!!.main.temp
         val feelLike = currentWeather.value!!.main.feels_like
         val weather = currentWeather.value!!.weather.firstOrNull()?.main ?: ""
-        updateCurrent(temp, feelLike, weather)
+        val city = currentWeather.value?.name?:""
+        val country = currentWeather.value?.sys?.country?:""
+        val location = "$city, $country"
+        val state = currentWeather.value!!.weather[0].icon
+
+        updateCurrent(temp, feelLike, weather,location,state)
 
     }
 

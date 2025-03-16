@@ -4,6 +4,7 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -32,10 +33,17 @@ fun WeatherNavigationBar() {
                 .fillMaxSize()
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(
-                            colorResource(id = R.color.primaryDark),
-                            colorResource(id = R.color.secondaryDark)
-                        )
+                        colors = if (isSystemInDarkTheme()) {
+                            listOf(
+                                colorResource(id = R.color.primaryDark),
+                                colorResource(id = R.color.secondaryDark)
+                            )
+                        } else {
+                            listOf(
+                                colorResource(id = R.color.primaryLight),
+                                colorResource(id = R.color.secondaryLight)
+                            )
+                        }
                     )
                 )
                 .padding(paddingValues)

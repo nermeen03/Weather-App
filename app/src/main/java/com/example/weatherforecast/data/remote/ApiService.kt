@@ -11,8 +11,12 @@ import retrofit2.http.Query
 
 interface ApiService {
 
-    @GET("data/2.5/forecast?lat=44.34&lon=10.99&appid=2fc5f5f3f6a9b61df9391d8ae569f5e0")
-    suspend fun get5DaysEvery3HoursData(): Response<ForecastDataResponse>
+    @GET("data/2.5/forecast")
+    suspend fun get5DaysEvery3HoursData(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
+        @Query("appid") apiKey: String = "2fc5f5f3f6a9b61df9391d8ae569f5e0"
+    ): Response<ForecastDataResponse>
 
     @GET("data/2.5/weather")
     suspend fun getCurrentWeather(

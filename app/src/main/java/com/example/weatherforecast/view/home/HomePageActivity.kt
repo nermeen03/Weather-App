@@ -27,7 +27,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableDoubleStateOf
@@ -43,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.ImageLoader
 import coil.compose.AsyncImage
@@ -51,8 +54,10 @@ import coil.decode.ImageDecoderDecoder
 import com.example.weatherforecast.MainActivity
 import com.example.weatherforecast.R
 import com.example.weatherforecast.data.pojo.DailyDetails
+import com.example.weatherforecast.data.pojo.ForecastDataResponse
 import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.repo.DailyDataRepository
+import com.example.weatherforecast.data.repo.Response
 import com.example.weatherforecast.viewModel.DailyDataViewModel
 import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
 import java.time.LocalDate
@@ -97,6 +102,12 @@ fun MainScreen() {
     viewModel.isInternetAvailable(context)
     val internet = viewModel.internet.observeAsState()
 
+    val response by viewModel.response.collectAsState()
+
+
+
+
+
     if(internet.value == true) {
         GetWeatherData(
             updateCurrent = { tempValue, feelLikeValue, weatherValue, locationValue, stateValue ->
@@ -112,40 +123,48 @@ fun MainScreen() {
                 daysList = days
             }
         )
-        if (temp==0.0) {
-            WaitingGif()
-        }
-        else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                item {
-                    TopWeatherSection(weather, feelLike, state)
-                }
+        when (response) {
+            is Response.Loading -> {
+                WaitingGif()
+            }
 
-                item {
-                    WeatherLocationSection(temp, location)
-                }
+            is Response.Success -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    item {
+                        TopWeatherSection(weather, feelLike, state)
+                    }
 
-                item {
-                    HourlyWeatherSection(hourlyList)
-                }
+                    item {
+                        WeatherLocationSection(temp, location)
+                    }
 
-                item {
-                    TodayDetailsSection(todayDetails)
-                }
+                    item {
+                        HourlyWeatherSection(hourlyList)
+                    }
 
-                item {
-                    DailyWeatherSection(daysList)
+                    item {
+                        TodayDetailsSection(todayDetails)
+                    }
+
+                    item {
+                        DailyWeatherSection(daysList)
+                    }
                 }
             }
 
+            is Response.Failure -> {
+                val error = (state as Response.Failure).error
+                WaitingGif()
+                Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
+            }
         }
     }else{
-        WaitingGif()
+        NoInternetGif()
     }
 
 
@@ -170,6 +189,32 @@ fun WaitingGif() {
     ) {
         AsyncImage(
             model = R.raw.waiting,
+            contentDescription = null,
+            imageLoader = imageLoader,
+            Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+fun NoInternetGif() {
+    val context = LocalContext.current
+    val imageLoader = ImageLoader.Builder(context)
+        .components {
+            if (SDK_INT >= 28) {
+                add(ImageDecoderDecoder.Factory())
+            } else {
+                add(GifDecoder.Factory())
+            }
+        }
+        .build()
+    Box(
+        modifier = Modifier
+            .fillMaxSize() ,
+        contentAlignment = Alignment.Center
+    ) {
+        AsyncImage(
+            model = R.raw.no,
             contentDescription = null,
             imageLoader = imageLoader,
             Modifier.fillMaxSize()
@@ -400,13 +445,14 @@ fun GetWeatherData(
     updateList: (
         MutableList<HourlyDetails>,
         DailyDetails?,
-        MutableList<HourlyDetails>) -> Unit){
+        MutableList<HourlyDetails>) -> Unit
+) {
     val context = LocalContext.current
     val viewModel: DailyDataViewModel =
         viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository()))
 
-    val dailyData = viewModel.dailyData.observeAsState()
-    val currentWeather = viewModel.currentWeather.observeAsState()
+    val dailyData = viewModel.dailyData.collectAsStateWithLifecycle()
+    val currentWeather = viewModel.currentWeather.collectAsStateWithLifecycle()
     val message = viewModel.message.observeAsState()
     val currentLocation = MainActivity.LocationManager.locationState.observeAsState()
 
@@ -415,16 +461,20 @@ fun GetWeatherData(
 
     LaunchedEffect(lat, long) {
         viewModel.retryFetchWeather(lat, long)
-
     }
 
-    message.value?.let {
-        Log.i("TAG", "Error: ${message.value}")
-        Toast.makeText(context, message.value, Toast.LENGTH_SHORT).show()
-        viewModel.retryFetchWeather(lat, long)
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.stopFetchingWeather()
+        }
     }
 
-
+    LaunchedEffect(Unit) {
+        message.value?.let {
+            Log.i("TAG", "Error: ${message.value}")
+            Toast.makeText(context, message.value, Toast.LENGTH_SHORT).show()
+        }
+    }
 
 
     if (dailyData.value != null && currentWeather.value != null && message.value == null) {
@@ -432,7 +482,7 @@ fun GetWeatherData(
         val todayWeather = dailyDataList.filter {
             it.dt_txt.startsWith(today)
         }
-        val hourlyDetails= mutableListOf<HourlyDetails>()
+        val hourlyDetails = mutableListOf<HourlyDetails>()
         val closestTime = if (currentHour % 3 == 0) currentHour else (currentHour / 3) * 3 + 3
 
         val timeString = String.format(Locale.getDefault(), "%02d:00:00", closestTime)
@@ -448,16 +498,16 @@ fun GetWeatherData(
             val cloud = current.clouds.all
             val state = current.weather[0].icon
 
-            dailyDetail = DailyDetails(pressure, humidity, speed, cloud,state)
+            dailyDetail = DailyDetails(pressure, humidity, speed, cloud, state)
         }
 
-        todayWeather.forEach{
+        todayWeather.forEach {
             val time = it.dt_txt.split(" ")[1].substring(0, 5)
             val temp = it.main.temp
             val feel = it.main.feels_like
             val state = it.weather[0].icon
 
-            val hourlyDetail = HourlyDetails(time,temp,feel,state)
+            val hourlyDetail = HourlyDetails(time, temp, feel, state)
             hourlyDetails.add(hourlyDetail)
         }
 
@@ -465,13 +515,13 @@ fun GetWeatherData(
             it.dt_txt.startsWith(today)
         }
         val daysDetails = mutableListOf<HourlyDetails>()
-        otherWeather.forEach{ it ->
+        otherWeather.forEach { it ->
             val time = it.dt_txt
             val temp = it.main.temp
             val feel = it.main.feels_like
             val state = it.weather[0].icon
 
-            if(time.split(" ")[1].substring(0, 5)=="00:00"){
+            if (time.split(" ")[1].substring(0, 5) == "00:00") {
                 val apiDate = LocalDate.parse(time.substring(0, 10))
                 val todayDate = LocalDate.now()
 
@@ -485,18 +535,16 @@ fun GetWeatherData(
                 daysDetails.add(days)
             }
         }
-        updateList(hourlyDetails,dailyDetail,daysDetails)
+        updateList(hourlyDetails, dailyDetail, daysDetails)
 
         val temp = currentWeather.value!!.main.temp
         val feelLike = currentWeather.value!!.main.feels_like
         val weather = currentWeather.value!!.weather.firstOrNull()?.main ?: ""
-        val city = currentWeather.value?.name?:""
-        val country = currentWeather.value?.sys?.country?:""
+        val city = currentWeather.value?.name ?: ""
+        val country = currentWeather.value?.sys?.country ?: ""
         val location = "$city, $country"
         val state = currentWeather.value!!.weather[0].icon
 
-        updateCurrent(temp, feelLike, weather,location,state)
-
+        updateCurrent(temp, feelLike, weather, location, state)
     }
-
 }

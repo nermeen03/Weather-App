@@ -12,44 +12,74 @@ import androidx.lifecycle.viewModelScope
 import com.example.weatherforecast.data.pojo.CurrentWeatherResponse
 import com.example.weatherforecast.data.pojo.ForecastDataResponse
 import com.example.weatherforecast.data.repo.IDailyDataRepository
+import com.example.weatherforecast.data.repo.Response
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewModel(){
-    private val mutableDailyData:MutableLiveData<ForecastDataResponse> = MutableLiveData()
-    val dailyData:LiveData<ForecastDataResponse> = mutableDailyData
+    private val mutableDailyData = MutableStateFlow<ForecastDataResponse?>(null)
+    val dailyData:StateFlow<ForecastDataResponse?> = mutableDailyData
 
-    private val mutableCurrentWeather:MutableLiveData<CurrentWeatherResponse> = MutableLiveData()
-    val currentWeather:LiveData<CurrentWeatherResponse> = mutableCurrentWeather
+    private val mutableCurrentWeather  = MutableStateFlow<CurrentWeatherResponse?>(null)
+    val currentWeather = mutableCurrentWeather.asStateFlow()
 
     private val mutableMessage:MutableLiveData<String?> = MutableLiveData()
     val message:LiveData<String?> = mutableMessage
 
+    private val mutableResponse = MutableStateFlow(Response.Loading as Response<*>)
+    val response = mutableResponse.asStateFlow()
+
 
     private val handle = CoroutineExceptionHandler { _, exception ->
-        mutableMessage.postValue(exception.message)
+        mutableResponse.value = Response.Failure(exception)
     }
 
-    private fun getDailyData(lat:Double,lon:Double){
+    private fun getDailyData(lat: Double, lon: Double) {
+
         viewModelScope.launch(Dispatchers.IO + handle) {
-            dataRepository.getDailyData(lat, lon)?.let {
-                mutableDailyData.postValue(it)
-                mutableMessage.postValue(null)
+            while (true) {
+                launch {
+                    dataRepository.getDailyData(lat, lon)
+                        .distinctUntilChanged()
+                        .catch { e -> mutableResponse.value = Response.Failure(e) }
+                        .collect {
+                            mutableDailyData.value = it
+                            mutableResponse.value = Response.Success
+                        }
+                }
+                delay(3600000)
             }
         }
     }
-    private fun getCurrentWeather(lat:Double,lon:Double) {
-        viewModelScope.launch(Dispatchers.IO + handle){
-            dataRepository.getCurrentWeather(lat, lon)?.let {
-                mutableCurrentWeather.postValue(it)
-                mutableMessage.postValue(null)
+
+    private fun getCurrentWeather(lat: Double, lon: Double) {
+
+        viewModelScope.launch(Dispatchers.IO + handle) {
+            while (true) {
+                launch {
+                    dataRepository.getCurrentWeather(lat, lon)
+                        .distinctUntilChanged()
+                        .catch { e -> mutableResponse.value = Response.Failure(e) }
+                        .collect {
+                            mutableCurrentWeather.value = it
+                            mutableResponse.value = Response.Success
+                        }
+                }
+                delay(600000)
             }
         }
+
     }
     fun retryFetchWeather(lat: Double, lon: Double) {
-        viewModelScope.launch {
+        viewModelScope.launch (Dispatchers.IO + handle) {
             while (true) {
                 if (internet.value == true) {
                     if (lat != -1.0 && lon != -1.0) {
@@ -57,7 +87,7 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
                         getCurrentWeather(lat, lon)
                         break
                     }
-                    delay(1000)
+                    delay(10000)
                 }
                 else{
                     break
@@ -65,6 +95,10 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
 
             }
         }
+    }
+
+    fun stopFetchingWeather() {
+        viewModelScope.coroutineContext.cancelChildren()
     }
     val mutableInternet: MutableLiveData<Boolean> = MutableLiveData()
     val internet: LiveData<Boolean> = mutableInternet

@@ -3,27 +3,26 @@ package com.example.weatherforecast.data.remote
 import android.util.Log
 import com.example.weatherforecast.data.pojo.CurrentWeatherResponse
 import com.example.weatherforecast.data.pojo.ForecastDataResponse
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
-class DailyRemoteDataSource : IDailyRemoteDataSource {
+class DailyRemoteDataSource(private var apiService: ApiService) : IDailyRemoteDataSource {
 
-    private var apiService: ApiService = RetrofitHelper.retrofitInstance.create(ApiService::class.java)
-
-    override suspend fun getDailyData(lat:Double,lon:Double): ForecastDataResponse? {
+    override fun getDailyData(lat: Double, lon: Double): Flow<ForecastDataResponse> = flow {
         val response = apiService.get5DaysEvery3HoursData(lat, lon)
         if (response.isSuccessful) {
-            return response.body()
+            emit(response.body()!!)
         } else {
-            Log.e("API_ERROR", "Error: ${response.errorBody()?.string()}")
-            return null
+            throw Exception(response.message())
         }
     }
-    override suspend fun getCurrentWeather(lat:Double,lon:Double):CurrentWeatherResponse?{
-        val response = apiService.getCurrentWeather(lat,lon)
-        if(response.isSuccessful){
-            return response.body()
+
+    override fun getCurrentWeather(lat: Double, lon: Double): Flow<CurrentWeatherResponse> = flow {
+        val response = apiService.getCurrentWeather(lat, lon)
+        if (response.isSuccessful) {
+            emit(response.body()!!)
         } else {
-            Log.e("API_ERROR", "Error: ${response.errorBody()?.string()}")
-            return null
+            throw Exception(response.message())
         }
     }
 }

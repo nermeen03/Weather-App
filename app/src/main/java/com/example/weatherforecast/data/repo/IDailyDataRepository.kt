@@ -2,8 +2,9 @@ package com.example.weatherforecast.data.repo
 
 import com.example.weatherforecast.data.pojo.CurrentWeatherResponse
 import com.example.weatherforecast.data.pojo.ForecastDataResponse
+import kotlinx.coroutines.flow.Flow
 
 interface IDailyDataRepository {
-    suspend fun getDailyData(lat:Double,lon:Double): ForecastDataResponse?
-    suspend fun getCurrentWeather(lat: Double, lon: Double): CurrentWeatherResponse?
+    suspend fun getDailyData(lat:Double,lon:Double): Flow<ForecastDataResponse?>
+    fun getCurrentWeather(lat: Double, lon: Double): Flow<CurrentWeatherResponse?>
 }

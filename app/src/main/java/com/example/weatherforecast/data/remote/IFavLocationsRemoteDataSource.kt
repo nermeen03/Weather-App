@@ -1,0 +1,3 @@
+package com.example.weatherforecast.data.remote
+
+interface IFavLocationsRemoteDataSource

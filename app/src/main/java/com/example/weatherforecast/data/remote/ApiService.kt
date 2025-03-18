@@ -1,5 +1,6 @@
 package com.example.weatherforecast.data.remote
 
+import com.example.weatherforecast.data.pojo.Country
 import com.example.weatherforecast.data.pojo.CurrentWeatherResponse
 import com.example.weatherforecast.data.pojo.ForecastDataResponse
 import com.example.weatherforecast.data.pojo.Location
@@ -31,5 +32,11 @@ interface ApiService {
         @Query("lat") lat: Double,
         @Query("lon") lon: Double,
         @Query("appid") apiKey: String = "2fc5f5f3f6a9b61df9391d8ae569f5e0"
+    ):Response<Country>
+
+    @GET()
+    suspend fun getMap(@Query("lat") lat: Double,
+    @Query("lon") lon: Double,
+    @Query("appid") apiKey: String = "2fc5f5f3f6a9b61df9391d8ae569f5e0"
     ):Response<Location>
 }

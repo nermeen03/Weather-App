@@ -7,5 +7,5 @@ interface IFavLocationsLocalDataSource {
     fun getAllFav(): Flow<List<Location>>
 
     suspend fun insertFav(location: Location): Long
-    suspend fun deleteFav(locationId: Int): Int
+    suspend fun deleteFav(lon: Double, lat: Double): Int
 }

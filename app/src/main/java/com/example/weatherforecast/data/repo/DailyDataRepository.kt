@@ -15,9 +15,8 @@ class DailyDataRepository(private val dailyRemoteDataSource: IDailyRemoteDataSou
         @Volatile
         private var INSTANCE: DailyDataRepository? = null
 
-         fun getRepository(): DailyDataRepository {
+         fun getRepository(apiService: ApiService): DailyDataRepository {
             return INSTANCE ?: synchronized(this) {
-                val apiService = RetrofitHelper.retrofitInstance.create(ApiService::class.java)
                 DailyDataRepository(DailyRemoteDataSource(apiService)).also {
                     INSTANCE = it
                 }

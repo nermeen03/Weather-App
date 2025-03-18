@@ -15,6 +15,7 @@ interface FavLocationsDao{
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(location: Location): Long
 
-    @Query("Delete from locations where id = :locationId")
-    suspend fun delete(locationId: Int): Int
+    @Query("Delete from locations where lon = :lon & lat = :lat")
+    suspend fun delete(lon: Double,lat:Double): Int
+
 }

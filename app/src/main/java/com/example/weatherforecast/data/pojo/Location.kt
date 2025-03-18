@@ -1,11 +1,14 @@
 package com.example.weatherforecast.data.pojo
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 
-@Entity(tableName = "locations")
+@Entity(tableName = "locations", primaryKeys = ["lon", "lat"])
 data class Location(
-    @PrimaryKey(autoGenerate = true)
-    val id:Int = 0,
-    val name:String,
-    val lon:Double,val lat:Double,val country:String,)
+    val name: String,
+    val country: String,
+    val lon: Double,
+    val lat: Double
+)
+
+
+data class Country(val name: String, val code: String)

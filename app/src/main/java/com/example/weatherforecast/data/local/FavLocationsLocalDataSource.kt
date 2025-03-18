@@ -15,7 +15,7 @@ class FavLocationsLocalDataSource(private val favLocationsDao:FavLocationsDao) :
         return favLocationsDao.insert(location)
     }
 
-    override suspend fun deleteFav(locationId: Int):Int{
-        return favLocationsDao.delete(locationId)
+    override suspend fun deleteFav(lon: Double,lat:Double):Int{
+        return favLocationsDao.delete(lon,lat)
     }
 }

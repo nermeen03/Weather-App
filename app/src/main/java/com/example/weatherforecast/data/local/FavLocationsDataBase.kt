@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.weatherforecast.data.pojo.Location
 
-@Database(entities = [Location::class], version = 2)
+@Database(entities = [Location::class], version = 3)
 abstract class FavLocationsDataBase: RoomDatabase() {
 
     abstract fun getFavLocationsDao():FavLocationsDao

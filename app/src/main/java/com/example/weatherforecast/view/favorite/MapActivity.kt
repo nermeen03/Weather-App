@@ -1,39 +1,40 @@
-package com.example.weatherforecast.view.favorite
-
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.weatherforecast.MainActivity
-import com.example.weatherforecast.data.pojo.Location
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
-import org.maplibre.android.MapLibre
-import org.maplibre.android.maps.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.weatherforecast.R
+import com.example.weatherforecast.data.local.FavLocationsDao
+import com.example.weatherforecast.data.local.FavLocationsDataBase
+import com.example.weatherforecast.data.local.FavLocationsLocalDataSource
+import com.example.weatherforecast.data.remote.ApiService
+import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource
+import com.example.weatherforecast.data.remote.RetrofitHelper
+import com.example.weatherforecast.data.repo.DailyDataRepository
+import com.example.weatherforecast.data.repo.FavLocationsRepository
+import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
+import com.example.weatherforecast.viewModel.FavLocationsViewModel
+import org.maplibre.android.WellKnownTileServer
+import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
-import org.maplibre.android.WellKnownTileServer
-import org.maplibre.android.annotations.MarkerOptions
-import java.net.URL
+import org.maplibre.android.maps.*
+import org.maplibre.android.style.layers.RasterLayer
+import org.maplibre.android.style.sources.RasterSource
+import org.maplibre.android.style.sources.TileSet
 
 class MapActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,136 +48,56 @@ class MapActivity : ComponentActivity() {
 @Composable
 fun MapScreen() {
     val context = LocalContext.current
-    val apiKey = "rnzDDmeWlNQlDmXga0CZ"
+    val apiKey = "2fc5f5f3f6a9b61df9391d8ae569f5e0"
 
-    MapLibre.getInstance(context, apiKey, WellKnownTileServer.MapTiler)
-    var selectedLocation by remember { mutableStateOf<LatLng?>(null) }
-    var locationName by remember { mutableStateOf("Select a location") }
-    val currentLocation by MainActivity.LocationManager.locationState.observeAsState()
+    val viewModel:FavLocationsViewModel = viewModel(factory = FavLocationsViewModel.FavLocationsViewModelFactory(
+        FavLocationsRepository.getRepository(FavLocationsLocalDataSource(FavLocationsDataBase.getInstance(context).getFavLocationsDao()),
+            FavLocationsRemoteDataSource(RetrofitHelper.retrofitInstance.create(ApiService::class.java))
+        )))
 
-    var searchQuery by remember { mutableStateOf("") }
-    var searchResults by remember { mutableStateOf(emptyList<Location>()) }
-
-    val coroutineScope = rememberCoroutineScope()
+    val selectedLocation by viewModel.selectedLocation.collectAsState()
+    val mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column {
-            SearchBar(searchQuery, onSearchChanged = {
-                searchQuery = it
-                coroutineScope.launch {
-                    delay(300)
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { ctx ->
+                val mapView = MapView(ctx).apply { onCreate(null) }
+                mapView.getMapAsync { map ->
+                    viewModel.onMapReady(map, apiKey)
                 }
-            }, searchResults, onLocationSelected = { place ->
-                selectedLocation = LatLng(place.lat, place.lon)
-                locationName = place.name
-                searchResults = emptyList()
-            })
-
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { ctx ->
-                    val mapView = MapView(ctx)
-                    mapView.onCreate(null)
-
-                    mapView.getMapAsync { map: MapLibreMap ->
-                        val styleUrl = "https://api.maptiler.com/maps/streets/style.json?key=$apiKey"
-
-                        map.setStyle(styleUrl) {
-                            map.uiSettings.isZoomGesturesEnabled = true
-                            map.uiSettings.isScrollGesturesEnabled = true
-
-                            val defaultLocation = LatLng(currentLocation?.first ?: 0.0, currentLocation?.second ?: 0.0)
-                            map.moveCamera(
-                                CameraUpdateFactory.newCameraPosition(
-                                    CameraPosition.Builder()
-                                        .target(defaultLocation)
-                                        .zoom(10.0)
-                                        .build()
-                                )
-                            )
-
-                            map.addOnMapClickListener { latLng ->
-                                selectedLocation = latLng
-                                Log.d("MapLibreView", "Clicked Location: ${latLng.latitude}, ${latLng.longitude}")
-
-                                map.clear()
-                                map.addMarker(
-                                    MarkerOptions()
-                                        .position(latLng)
-                                        .title("Selected Location")
-                                )
-
-
-
-                                true
-                            }
-                        }
-                    }
-                    mapView
-                }
-            )
-
-        }
+                mapView
+            }
+        )
 
         selectedLocation?.let {
             SelectedLocation(it.latitude, it.longitude)
         }
-    }
-}
-
-@Composable
-fun SearchBar(
-    query: String,
-    onSearchChanged: (String) -> Unit,
-    searchResults: List<Location>,
-    onLocationSelected: (Location) -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(16.dp)
-    ) {
-        Box {
-            BasicTextField(
-                value = query,
-                onValueChange = onSearchChanged,
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                decorationBox = { innerTextField ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
-                        Spacer(Modifier.width(8.dp))
-                        innerTextField()
-                    }
-                }
-            )
-        }
-
-        if (searchResults.isNotEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(8.dp)
-            ) {
-                searchResults.forEach { place ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(8.dp).clickable {
-                            onLocationSelected(place)
-                        },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.LocationOn, contentDescription = "Location")
-                        Spacer(Modifier.width(8.dp))
-                        Text(place.name)
-                    }
-                }
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.Bottom,
+            horizontalAlignment = Alignment.End
+        ) {
+            FloatingActionButton(onClick = {
+                mapLibreMap?.animateCamera(CameraUpdateFactory.zoomIn())
+            }) {
+                Text("+")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            FloatingActionButton(onClick = {
+                mapLibreMap?.animateCamera(CameraUpdateFactory.zoomOut())
+            }) {
+                Text("-")
             }
         }
     }
 }
 
+
 @Composable
 fun SelectedLocation(lat: Double, long: Double) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(16.dp).background(colorResource(R.color.blue)),
         contentAlignment = Alignment.BottomCenter
     ) {
         Column(
@@ -190,33 +111,6 @@ fun SelectedLocation(lat: Double, long: Double) {
                 Icon(Icons.Default.LocationOn, contentDescription = "Add to Favorites")
                 Text("Save Location")
             }
-        }
-    }
-}
-
-suspend fun fetchCitySuggestions(query: String, countryCode: String = "EG"): List<String> {
-    val apiKey = "2fc5f5f3f6a9b61df9391d8ae569f5e0"
-    val url = "https://api.openweathermap.org/geo/1.0/direct?q=$query&limit=5&appid=$apiKey"
-
-    return withContext(Dispatchers.IO) {
-        try {
-            val response = URL(url).readText()
-            val jsonArray = JSONArray(response)
-            val cityList = mutableListOf<String>()
-
-            for (i in 0 until jsonArray.length()) {
-                val city = jsonArray.getJSONObject(i)
-                val country = city.optString("country")
-
-                if (country == countryCode) {  // Filter by country
-                    val cityName = city.getString("name")
-                    cityList.add(cityName)
-                }
-            }
-            cityList
-        } catch (e: Exception) {
-            e.printStackTrace()
-            emptyList()
         }
     }
 }

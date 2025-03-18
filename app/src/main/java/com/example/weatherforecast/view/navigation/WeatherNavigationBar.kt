@@ -1,5 +1,6 @@
 package com.example.weatherforecast.view.navigation
 
+import MapScreen
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -19,7 +20,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import com.example.weatherforecast.R
-import com.example.weatherforecast.view.favorite.MapScreen
 import com.example.weatherforecast.view.home.MainScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -31,7 +31,7 @@ fun WeatherNavigationBar() {
             BottomNavigationBar(selectedItem) {
                 selectedItem = it
             }
-        },floatingActionButton = {
+        }/*,floatingActionButton = {
             if (selectedItem == BottomNavItem.Favorite) {
                 FloatingActionButton(onClick = {
 
@@ -39,7 +39,7 @@ fun WeatherNavigationBar() {
                     Icon(Icons.Default.Add, contentDescription = "Add Favorite")
                 }
             }
-        }
+        }*/
     ) { paddingValues ->
         Column(
             Modifier

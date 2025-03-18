@@ -54,20 +54,22 @@ import coil.decode.ImageDecoderDecoder
 import com.example.weatherforecast.MainActivity
 import com.example.weatherforecast.R
 import com.example.weatherforecast.data.pojo.DailyDetails
-import com.example.weatherforecast.data.pojo.ForecastDataResponse
+import com.example.weatherforecast.view.utils.internet
 import com.example.weatherforecast.data.pojo.HourlyDetails
+import com.example.weatherforecast.data.pojo.WeatherDetails
+import com.example.weatherforecast.data.remote.ApiService
+import com.example.weatherforecast.data.remote.RetrofitHelper
 import com.example.weatherforecast.data.repo.DailyDataRepository
 import com.example.weatherforecast.data.repo.Response
+import com.example.weatherforecast.view.utils.AppLocationHelper
+import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.DailyDataViewModel
 import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.Locale
 
-@RequiresApi(Build.VERSION_CODES.O)
-val today = LocalDate.now().toString()
-@RequiresApi(Build.VERSION_CODES.O)
-val currentHour = LocalTime.now().hour
+
 
 class HomePageActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
@@ -91,35 +93,27 @@ fun MainScreen() {
     var weather by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var state by remember { mutableStateOf("") }
-    var todayDetails by remember { mutableStateOf<DailyDetails?>(null) }
+    val todayDetails by remember { mutableStateOf<DailyDetails?>(null) }
+    var currentDetails by remember { mutableStateOf<WeatherDetails?>(null) }
     var hourlyList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
     var daysList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
 
     val context = LocalContext.current
     val viewModel: DailyDataViewModel =
-        viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository()))
+        viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
 
-    viewModel.isInternetAvailable(context)
-    val internet = viewModel.internet.observeAsState()
+    isInternetAvailable(context)
+    val internet = internet.observeAsState()
 
     val response by viewModel.response.collectAsState()
 
-
-
-
-
     if(internet.value == true) {
         GetWeatherData(
-            updateCurrent = { tempValue, feelLikeValue, weatherValue, locationValue, stateValue ->
-                temp = tempValue
-                feelLike = feelLikeValue
-                weather = weatherValue
-                location = locationValue
-                state = stateValue
+            updateCurrent = { newDetails ->
+                currentDetails = newDetails
             },
-            updateList = { hourly, today, days ->
+            updateList = { hourly, days ->
                 hourlyList = hourly
-                todayDetails = today
                 daysList = days
             }
         )
@@ -158,8 +152,8 @@ fun MainScreen() {
             }
 
             is Response.Failure -> {
-                val error = (state as Response.Failure).error
-                WaitingGif()
+                val error = (response as Response.Failure).error
+                Log.i("TAG", "MainScreen: $error")
                 Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
             }
         }
@@ -243,6 +237,7 @@ fun TopWeatherSection(weather: String, feelLike: Double,state: String) {
         }
         Column(horizontalAlignment = Alignment.End) {
             Text("Today", fontSize = 20.sp, color = Color.White)
+            val today = LocalDate.now().toString()
             Text(today, fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Bold)
         }
     }
@@ -441,26 +436,34 @@ fun DayDataCard(details: HourlyDetails) {
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun GetWeatherData(
-    updateCurrent: (Double, Double, String, String, String) -> Unit,
+    updateCurrent: (WeatherDetails) -> Unit,
     updateList: (
-        MutableList<HourlyDetails>,
-        DailyDetails?,
-        MutableList<HourlyDetails>) -> Unit
+        List<HourlyDetails>,
+        List<HourlyDetails>) -> Unit
 ) {
-    val context = LocalContext.current
     val viewModel: DailyDataViewModel =
-        viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository()))
+        viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(
+            RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
 
-    val dailyData = viewModel.dailyData.collectAsStateWithLifecycle()
-    val currentWeather = viewModel.currentWeather.collectAsStateWithLifecycle()
-    val message = viewModel.message.observeAsState()
-    val currentLocation = MainActivity.LocationManager.locationState.observeAsState()
+    val currentWeather = viewModel.currentWeatherDetails.collectAsStateWithLifecycle()
+    val filteredWeather = viewModel.filteredWeatherData.collectAsStateWithLifecycle()
+
+    val message = viewModel.response.collectAsStateWithLifecycle()
+    val currentLocation =  AppLocationHelper.locationState.observeAsState()
 
     val lat = currentLocation.value?.first ?: -1.0
     val long = currentLocation.value?.second ?: -1.0
 
     LaunchedEffect(lat, long) {
-        viewModel.retryFetchWeather(lat, long)
+        Log.i("TAG", "GetWeatherData: calling")
+        viewModel.fetchWeatherData(lat, long)
+    }
+
+    if(message.value == Response.Success && currentWeather.value != null ){
+        Log.i("TAG", "GetWeatherData: ")
+        updateCurrent(currentWeather.value!!)
+        updateList(filteredWeather.value?.first?:emptyList(),filteredWeather.value?.second?: emptyList())
+
     }
 
     DisposableEffect(Unit) {
@@ -469,82 +472,4 @@ fun GetWeatherData(
         }
     }
 
-    LaunchedEffect(Unit) {
-        message.value?.let {
-            Log.i("TAG", "Error: ${message.value}")
-            Toast.makeText(context, message.value, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-
-    if (dailyData.value != null && currentWeather.value != null && message.value == null) {
-        val dailyDataList = dailyData.value!!.list
-        val todayWeather = dailyDataList.filter {
-            it.dt_txt.startsWith(today)
-        }
-        val hourlyDetails = mutableListOf<HourlyDetails>()
-        val closestTime = if (currentHour % 3 == 0) currentHour else (currentHour / 3) * 3 + 3
-
-        val timeString = String.format(Locale.getDefault(), "%02d:00:00", closestTime)
-
-        val current = todayWeather.find {
-            it.dt_txt.startsWith(today) && it.dt_txt.contains(timeString)
-        }
-        var dailyDetail: DailyDetails? = null
-        if (current != null) {
-            val pressure = current.main.pressure
-            val humidity = current.main.humidity
-            val speed = current.wind.speed
-            val cloud = current.clouds.all
-            val state = current.weather[0].icon
-
-            dailyDetail = DailyDetails(pressure, humidity, speed, cloud, state)
-        }
-
-        todayWeather.forEach {
-            val time = it.dt_txt.split(" ")[1].substring(0, 5)
-            val temp = it.main.temp
-            val feel = it.main.feels_like
-            val state = it.weather[0].icon
-
-            val hourlyDetail = HourlyDetails(time, temp, feel, state)
-            hourlyDetails.add(hourlyDetail)
-        }
-
-        val otherWeather = dailyDataList.filterNot {
-            it.dt_txt.startsWith(today)
-        }
-        val daysDetails = mutableListOf<HourlyDetails>()
-        otherWeather.forEach { it ->
-            val time = it.dt_txt
-            val temp = it.main.temp
-            val feel = it.main.feels_like
-            val state = it.weather[0].icon
-
-            if (time.split(" ")[1].substring(0, 5) == "00:00") {
-                val apiDate = LocalDate.parse(time.substring(0, 10))
-                val todayDate = LocalDate.now()
-
-                val dayText = when {
-                    apiDate.isEqual(todayDate) -> "Today"
-                    apiDate.isEqual(todayDate.plusDays(1)) -> "Tomorrow"
-                    else -> apiDate.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
-                }
-
-                val days = HourlyDetails(dayText, temp, feel, state)
-                daysDetails.add(days)
-            }
-        }
-        updateList(hourlyDetails, dailyDetail, daysDetails)
-
-        val temp = currentWeather.value!!.main.temp
-        val feelLike = currentWeather.value!!.main.feels_like
-        val weather = currentWeather.value!!.weather.firstOrNull()?.main ?: ""
-        val city = currentWeather.value?.name ?: ""
-        val country = currentWeather.value?.sys?.country ?: ""
-        val location = "$city, $country"
-        val state = currentWeather.value!!.weather[0].icon
-
-        updateCurrent(temp, feelLike, weather, location, state)
-    }
 }

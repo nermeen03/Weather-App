@@ -38,6 +38,31 @@
 
             </intent-filter>
         </activity>
+        <activity
+            android:name=".view.favorite.FavActivity"
+            android:exported="true"
+            android:theme="@style/Theme.WeatherForecast">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".view.favorite.MapActivity"
+            android:exported="true"
+            android:theme="@style/Theme.WeatherForecast">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".view.favorite.CountryDetailsActivity"
+            android:exported="true"
+            android:theme="@style/Theme.WeatherForecast">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
+
     </application>
 
 

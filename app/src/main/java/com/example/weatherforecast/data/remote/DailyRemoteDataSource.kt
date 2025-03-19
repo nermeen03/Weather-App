@@ -1,6 +1,5 @@
 package com.example.weatherforecast.data.remote
 
-import android.util.Log
 import com.example.weatherforecast.data.pojo.CurrentWeatherResponse
 import com.example.weatherforecast.data.pojo.ForecastDataResponse
 import kotlinx.coroutines.flow.Flow

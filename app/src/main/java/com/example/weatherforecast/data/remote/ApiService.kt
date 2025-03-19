@@ -1,9 +1,9 @@
 package com.example.weatherforecast.data.remote
 
-import com.example.weatherforecast.data.pojo.Country
 import com.example.weatherforecast.data.pojo.CurrentWeatherResponse
 import com.example.weatherforecast.data.pojo.ForecastDataResponse
 import com.example.weatherforecast.data.pojo.Location
+import com.example.weatherforecast.data.pojo.NameResponse
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
@@ -32,7 +32,7 @@ interface ApiService {
         @Query("lat") lat: Double,
         @Query("lon") lon: Double,
         @Query("appid") apiKey: String = "2fc5f5f3f6a9b61df9391d8ae569f5e0"
-    ):Response<Country>
+    ):Response<NameResponse>
 
     @GET()
     suspend fun getMap(@Query("lat") lat: Double,

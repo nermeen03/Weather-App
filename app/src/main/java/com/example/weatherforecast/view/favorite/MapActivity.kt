@@ -1,40 +1,67 @@
+package com.example.weatherforecast.view.favorite
+
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.weatherforecast.R
-import com.example.weatherforecast.data.local.FavLocationsDao
 import com.example.weatherforecast.data.local.FavLocationsDataBase
 import com.example.weatherforecast.data.local.FavLocationsLocalDataSource
+import com.example.weatherforecast.data.pojo.LocalNames
+import com.example.weatherforecast.data.pojo.Location
+import com.example.weatherforecast.data.pojo.NameResponseItem
 import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource
 import com.example.weatherforecast.data.remote.RetrofitHelper
-import com.example.weatherforecast.data.repo.DailyDataRepository
 import com.example.weatherforecast.data.repo.FavLocationsRepository
-import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
+import com.example.weatherforecast.data.repo.Response
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
-import org.maplibre.android.WellKnownTileServer
-import org.maplibre.android.annotations.MarkerOptions
-import org.maplibre.android.camera.CameraPosition
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
-import org.maplibre.android.maps.*
-import org.maplibre.android.style.layers.RasterLayer
-import org.maplibre.android.style.sources.RasterSource
-import org.maplibre.android.style.sources.TileSet
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapView
 
 class MapActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,18 +72,37 @@ class MapActivity : ComponentActivity() {
     }
 }
 
+@Preview
 @Composable
 fun MapScreen() {
     val context = LocalContext.current
     val apiKey = "2fc5f5f3f6a9b61df9391d8ae569f5e0"
 
-    val viewModel:FavLocationsViewModel = viewModel(factory = FavLocationsViewModel.FavLocationsViewModelFactory(
-        FavLocationsRepository.getRepository(FavLocationsLocalDataSource(FavLocationsDataBase.getInstance(context).getFavLocationsDao()),
+    val viewModel: FavLocationsViewModel = viewModel(factory = FavLocationsViewModel.FavLocationsViewModelFactory(
+        FavLocationsRepository.getRepository(
+            FavLocationsLocalDataSource(FavLocationsDataBase.getInstance(context).getFavLocationsDao()),
             FavLocationsRemoteDataSource(RetrofitHelper.retrofitInstance.create(ApiService::class.java))
-        )))
-
+        )
+    ))
+    LaunchedEffect(Unit) {
+        viewModel.loadCountries(context)
+    }
     val selectedLocation by viewModel.selectedLocation.collectAsState()
-    val mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
+    val locationName by viewModel.locationName.collectAsState()
+    val responseState by viewModel.response.collectAsState()
+    val textFlow = MutableSharedFlow<String>(replay = 1)
+    val scope = rememberCoroutineScope()
+    val searchQuery = remember { mutableStateOf("") }
+    var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
+
+    var locationSelected by remember { mutableStateOf<NameResponseItem?>(null) }
+
+
+    LaunchedEffect(textFlow) {
+        textFlow.collect {
+            searchQuery.value = it
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
@@ -64,49 +110,176 @@ fun MapScreen() {
             factory = { ctx ->
                 val mapView = MapView(ctx).apply { onCreate(null) }
                 mapView.getMapAsync { map ->
+                    mapLibreMap = map
                     viewModel.onMapReady(map, apiKey)
                 }
                 mapView
             }
         )
 
-        selectedLocation?.let {
-            SelectedLocation(it.latitude, it.longitude)
-        }
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .align(Alignment.TopCenter)
+        ) {
+            OutlinedTextField(
+                value = searchQuery.value,
+                onValueChange = {
+                    scope.launch {
+                        textFlow.emit(it)
+                    }
+                },
+                placeholder = { Text("Search location...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                trailingIcon = {
+                    if (searchQuery.value.isNotEmpty()) {
+                        IconButton(onClick = {
+                            scope.launch { textFlow.emit("") }
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear")
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().background(colorResource(R.color.white))
+            )
+
+            viewModel.filterCountries(searchQuery.value)
+            val filtered = viewModel.filteredCountries.collectAsStateWithLifecycle().value
+
+            LazyColumn {
+                items(filtered.size) {
+                    Text(
+                        text = "${filtered[it].name}, ${filtered[it].country}",
+                        modifier = Modifier
+                            .fillMaxWidth().background(colorResource(R.color.primaryLight))
+                            .clickable {
+                                //searchQuery.value = "${filtered[it].name}, ${filtered[it].country}"
+                                scope.launch {
+                                    val selected = filtered[it]
+                                    textFlow.emit("${selected.name}, ${selected.country}")
+                                    val latLng = LatLng(selected.coord.lat, selected.coord.lon)
+                                    viewModel.addMark(mapLibreMap,latLng)
+                                    val name = NameResponseItem(filtered[it].country,filtered[it].coord.lat,
+                                        LocalNames(be = "", cy = "", en = "", fr = "", he = "", ko = "", mk = "", ru = ""),filtered[it].coord.lon,filtered[it].name,"")
+                                    locationSelected = name
+                                }
+                            }
+                            .padding(8.dp)
+                    )
+                }
+            }
+        }
+        locationSelected?.let {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .align(Alignment.BottomCenter)
+                ,
+                contentAlignment = Alignment.BottomCenter // Use this inside Box
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    SelectedLocationByName(locationSelected!!,viewModel)
+                }
+            }
+        }
+        selectedLocation?.let { location ->
+
+            LaunchedEffect(location) {
+                viewModel.getLocationName(location.latitude, location.longitude)
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .align(Alignment.BottomCenter)
+                ,
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    when (responseState) {
+                        is Response.Success -> {
+                            if (locationName != null) {
+                                SelectedLocationByName(locationName!!, viewModel)
+                            } else {
+                                SelectedLocation(location.latitude, location.longitude)
+                            }
+                        }
+                        is Response.Failure -> SelectedLocation(location.latitude, location.longitude)
+                        is Response.Loading -> if(locationSelected == null) CircularProgressIndicator()
+                    }
+                }
+            }
+        }
+
+    }
+
+
+
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
             verticalArrangement = Arrangement.Bottom,
             horizontalAlignment = Alignment.End
         ) {
-            FloatingActionButton(onClick = {
-                mapLibreMap?.animateCamera(CameraUpdateFactory.zoomIn())
-            }) {
+            FloatingActionButton(onClick = { mapLibreMap?.animateCamera(CameraUpdateFactory.zoomIn()) }) {
                 Text("+")
             }
             Spacer(modifier = Modifier.height(8.dp))
-            FloatingActionButton(onClick = {
-                mapLibreMap?.animateCamera(CameraUpdateFactory.zoomOut())
-            }) {
+            FloatingActionButton(onClick = { mapLibreMap?.animateCamera(CameraUpdateFactory.zoomOut()) }) {
                 Text("-")
             }
         }
     }
-}
+
+
+
 
 
 @Composable
 fun SelectedLocation(lat: Double, long: Double) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(16.dp).background(colorResource(R.color.blue)),
+        modifier = Modifier
+            .padding(16.dp)
+            .background(colorResource(R.color.blue)),
         contentAlignment = Alignment.BottomCenter
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Selected: ($lat, $long)")
+            Text(color = colorResource(R.color.white), text = ("Selected: ($lat, $long)"))
+        }
+    }
+}
+
+@Composable
+fun SelectedLocationByName(location: NameResponseItem,viewModel: FavLocationsViewModel) {
+    val context = LocalContext.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .background(colorResource(R.color.blue)),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(color = colorResource(R.color.white), text = ("Selected: (${location.name}, ${location.country})"))
             Spacer(modifier = Modifier.height(8.dp))
             Button(
-                onClick = { Log.d("MapLibreView", "Location Saved: $lat, $long") },
+                onClick = {
+                          viewModel.insertLocation(Location(location.name,location.country,location.lon,location.lat))
+                            when(viewModel.response.value){
+                                is Response.Success -> {
+                                    Toast.makeText(context, "added successfully", Toast.LENGTH_SHORT).show()}
+                                else -> {Toast.makeText(context, "couldn't be added", Toast.LENGTH_SHORT).show()}
+                            }
+                          },
             ) {
                 Icon(Icons.Default.LocationOn, contentDescription = "Add to Favorites")
                 Text("Save Location")

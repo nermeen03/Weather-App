@@ -2,21 +2,20 @@ package com.example.weatherforecast.viewModel
 
 import android.content.Context
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.weatherforecast.data.pojo.Country
+import com.example.weatherforecast.R
+import com.example.weatherforecast.data.pojo.CountriesListItem
 import com.example.weatherforecast.data.pojo.Location
+import com.example.weatherforecast.data.pojo.NameResponseItem
 import com.example.weatherforecast.data.repo.FavLocationsRepository
-import com.example.weatherforecast.data.repo.IDailyDataRepository
+import com.example.weatherforecast.data.repo.IFavLocationsRepository
 import com.example.weatherforecast.data.repo.Response
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,17 +23,12 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.launch
-import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.camera.CameraPosition
-import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
-import org.maplibre.android.maps.MapView
-import org.maplibre.android.style.layers.RasterLayer
-import org.maplibre.android.style.sources.RasterSource
-import org.maplibre.android.style.sources.TileSet
+import java.io.InputStreamReader
 
-class FavLocationsViewModel(private val favLocationsRepository: FavLocationsRepository):ViewModel(){
+class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRepository):ViewModel(){
 
     private val mutableResponse = MutableStateFlow(Response.Loading as Response<*>)
     val response = mutableResponse.asStateFlow()
@@ -44,13 +38,18 @@ class FavLocationsViewModel(private val favLocationsRepository: FavLocationsRepo
     }
 
     private val mutableFavLocations = MutableStateFlow<List<Location>>(emptyList())
-    private val favLocations =mutableFavLocations.asStateFlow()
+    val favLocations =mutableFavLocations.asStateFlow()
 
-    private val mutableLocationName = MutableStateFlow<Country?>(null)
-    private val locationName =mutableLocationName.asStateFlow()
+    private val mutableLocationName = MutableStateFlow<NameResponseItem?>(null)
+    val locationName =mutableLocationName.asStateFlow()
 
     private val _selectedLocation = MutableStateFlow<LatLng?>(null)
     val selectedLocation: StateFlow<LatLng?> = _selectedLocation
+
+    private val _countryList = MutableStateFlow<List<CountriesListItem>>(emptyList())
+
+    private val _filteredCountries = MutableStateFlow<List<CountriesListItem>>(emptyList())
+    val filteredCountries: StateFlow<List<CountriesListItem>> = _filteredCountries
 
      fun insertLocation(location: Location){
        viewModelScope.launch(Dispatchers.IO+handle) {
@@ -62,7 +61,7 @@ class FavLocationsViewModel(private val favLocationsRepository: FavLocationsRepo
     fun deleteLocation(lat: Double, lon: Double){
         viewModelScope.launch(Dispatchers.IO+handle){
             val result = favLocationsRepository.deleteFav(lat, lon)
-            if(result>=0){ mutableResponse.value = Response.Success }
+            if(result>0){ mutableResponse.value = Response.Success }
             else{ mutableResponse.value = Response.Failure(Exception("an error occurred")) }
         }
     }
@@ -76,17 +75,24 @@ class FavLocationsViewModel(private val favLocationsRepository: FavLocationsRepo
                 }
         }
     }
-
-    fun getLocationName(lat: Double, lon: Double){
-        viewModelScope.launch(Dispatchers.IO+handle) {
-            favLocationsRepository.getLocationName(lat, lon).distinctUntilChanged().retry(3)
+    fun getLocationName(lat: Double, lon: Double) {
+        mutableResponse.value = Response.Loading
+        viewModelScope.launch(Dispatchers.IO + handle) {
+            favLocationsRepository.getLocationName(lat, lon)
+                .distinctUntilChanged()
+                .retry(3)
                 .catch { e -> mutableResponse.value = Response.Failure(e) }
-                .collect {
-                    mutableLocationName.value = it
-                    mutableResponse.value = Response.Success
+                .collect { result ->
+                    if (result.isNotEmpty()) {
+                        mutableLocationName.value = result[0]
+                        mutableResponse.value = Response.Success
+                    } else {
+                        mutableResponse.value = Response.Failure(Exception("No location found"))
+                    }
                 }
         }
     }
+
 
     fun onMapReady(map: MapLibreMap, apiKey: String) {
         map.uiSettings.isZoomGesturesEnabled = true
@@ -117,7 +123,6 @@ class FavLocationsViewModel(private val favLocationsRepository: FavLocationsRepo
 
             map.addOnMapClickListener { latLng ->
                 _selectedLocation.value = latLng
-                Log.d("MapViewModel", "Clicked Location: ${latLng.latitude}, ${latLng.longitude}")
 
                 map.clear()
                 map.addMarker(
@@ -129,6 +134,52 @@ class FavLocationsViewModel(private val favLocationsRepository: FavLocationsRepo
             }
         }
     }
+
+    fun addMark(map: MapLibreMap?, latLng: LatLng) {
+        _selectedLocation.value = latLng
+
+        map?.let {
+            it.clear()
+            it.addMarker(
+                org.maplibre.android.annotations.MarkerOptions()
+                    .position(latLng)
+                    .title("Selected Location")
+            )
+        }
+    }
+
+
+
+    fun loadCountries(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val inputStream = context.resources.openRawResource(R.raw.lists)
+                val reader = InputStreamReader(inputStream)
+                val gson = Gson()
+
+                val type = object : TypeToken<List<CountriesListItem>>() {}.type
+                val countries: List<CountriesListItem> = gson.fromJson(reader, type)
+
+                _countryList.value = countries
+
+            } catch (e: Exception) {
+                Log.e("TAG", "Error loading countries", e)
+            }
+        }
+    }
+
+
+
+    fun filterCountries(query: String) {
+        _filteredCountries.value = if (query.isEmpty()) {
+            emptyList()
+        } else {
+            _countryList.value.filter {
+                it.name.contains(query, ignoreCase = true)
+            }
+        }
+    }
+
     class FavLocationsViewModelFactory(private val favLocationsRepository: FavLocationsRepository):
         ViewModelProvider.Factory{
         override fun <T : ViewModel> create(modelClass: Class<T>): T {

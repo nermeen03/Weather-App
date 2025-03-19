@@ -1,12 +1,11 @@
 package com.example.weatherforecast.data.remote
 
-import com.example.weatherforecast.data.pojo.Country
-import com.example.weatherforecast.data.pojo.Location
+import android.util.Log
 import kotlinx.coroutines.flow.flow
 
 class FavLocationsRemoteDataSource(private val apiService: ApiService) : IFavLocationsRemoteDataSource {
 
-    override suspend fun getLocation(lat: Double, lon: Double) = flow<Country>{
+    override suspend fun getLocation(lat: Double, lon: Double) = flow{
         val result = apiService.getLocationName(lat, lon)
         if (result.isSuccessful){
             emit(result.body()!!)

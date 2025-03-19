@@ -6,7 +6,6 @@ import com.example.weatherforecast.data.pojo.ForecastDataResponse
 import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.DailyRemoteDataSource
 import com.example.weatherforecast.data.remote.IDailyRemoteDataSource
-import com.example.weatherforecast.data.remote.RetrofitHelper
 import kotlinx.coroutines.flow.Flow
 
 class DailyDataRepository(private val dailyRemoteDataSource: IDailyRemoteDataSource) :

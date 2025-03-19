@@ -1,8 +1,6 @@
 package com.example.weatherforecast.view.navigation
 
-import MapScreen
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -14,12 +12,18 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import com.example.weatherforecast.R
+import com.example.weatherforecast.view.favorite.DetailsScreen
+import com.example.weatherforecast.view.favorite.FavActivity
+import com.example.weatherforecast.view.favorite.MapScreen
 import com.example.weatherforecast.view.home.MainScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -31,7 +35,7 @@ fun WeatherNavigationBar() {
             BottomNavigationBar(selectedItem) {
                 selectedItem = it
             }
-        }/*,floatingActionButton = {
+        },floatingActionButton = {
             if (selectedItem == BottomNavItem.Favorite) {
                 FloatingActionButton(onClick = {
 
@@ -39,7 +43,7 @@ fun WeatherNavigationBar() {
                     Icon(Icons.Default.Add, contentDescription = "Add Favorite")
                 }
             }
-        }*/
+        }
     ) { paddingValues ->
         Column(
             Modifier
@@ -63,10 +67,11 @@ fun WeatherNavigationBar() {
         ) {
             when (selectedItem) {
                 BottomNavItem.Home -> MainScreen()
-                BottomNavItem.Favorite -> MapScreen()
-                BottomNavItem.Alert -> Log.i("TAG", "WeatherNavigationBar: alert")
-                BottomNavItem.Settings -> Log.i("TAG", "WeatherNavigationBar: settings")
+                BottomNavItem.Favorite -> FavActivity().ShowFav()
+                BottomNavItem.Alert -> MapScreen()
+                BottomNavItem.Settings -> DetailsScreen()
             }
         }
     }
+
 }

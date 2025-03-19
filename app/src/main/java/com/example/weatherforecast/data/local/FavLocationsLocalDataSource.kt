@@ -1,6 +1,5 @@
 package com.example.weatherforecast.data.local
 
-import android.content.Context
 import com.example.weatherforecast.data.pojo.Location
 import kotlinx.coroutines.flow.Flow
 

@@ -2,7 +2,6 @@ package com.example.weatherforecast.viewModel
 
 
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -18,7 +17,6 @@ import com.example.weatherforecast.view.utils.internet
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,38 +50,32 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
 
     private fun getDailyData(lat: Double, lon: Double) {
         viewModelScope.launch(Dispatchers.IO + handle) {
-            while (true) {
-                launch {
-                    dataRepository.getDailyData(lat, lon)
-                        .distinctUntilChanged().retry(3)
-                        .catch { e -> mutableDailyResponse.value = Response.Failure(e)
-                                updateResponseState()}
-                        .collect {
-                            mutableDailyData.value = it
-                            mutableDailyResponse.value = Response.Success
-                            updateResponseState()
-                        }
-                }
-                delay(3600000)
+            launch {
+                dataRepository.getDailyData(lat, lon)
+                    .distinctUntilChanged().retry(3)
+                    .catch { e -> mutableDailyResponse.value = Response.Failure(e)
+                            updateResponseState()}
+                    .collect {
+                        mutableDailyData.value = it
+                        mutableDailyResponse.value = Response.Success
+                        updateResponseState()
+                    }
             }
         }
     }
 
     private fun getCurrentWeather(lat: Double, lon: Double) {
         viewModelScope.launch(Dispatchers.IO + handle) {
-            while (true) {
-                launch {
-                    dataRepository.getCurrentWeather(lat, lon)
-                        .distinctUntilChanged().retry(3)
-                        .catch { e -> mutableCurrentResponse.value = Response.Failure(e)
-                                updateResponseState()}
-                        .collect {
-                            mutableCurrentWeather.value = it
-                            mutableCurrentResponse.value = Response.Success
-                            updateResponseState()
-                        }
-                }
-                delay(600000)
+            launch {
+                dataRepository.getCurrentWeather(lat, lon)
+                    .distinctUntilChanged().retry(3)
+                    .catch { e -> mutableCurrentResponse.value = Response.Failure(e)
+                            updateResponseState()}
+                    .collect {
+                        mutableCurrentWeather.value = it
+                        mutableCurrentResponse.value = Response.Success
+                        updateResponseState()
+                    }
             }
         }
     }

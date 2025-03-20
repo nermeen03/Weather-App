@@ -1,10 +1,6 @@
 package com.example.weatherforecast.view.favorite
 
-import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -63,14 +60,6 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 
-class MapActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            MapScreen()
-        }
-    }
-}
 
 @Preview
 @Composable
@@ -257,31 +246,54 @@ fun SelectedLocation(lat: Double, long: Double) {
 }
 
 @Composable
-fun SelectedLocationByName(location: NameResponseItem,viewModel: FavLocationsViewModel) {
+fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsViewModel) {
     val context = LocalContext.current
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
-            .background(colorResource(R.color.blue)),
+            .background(colorResource(R.color.purple_200)),
         contentAlignment = Alignment.BottomCenter
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(color = colorResource(R.color.white), text = ("Selected: (${location.name}, ${location.country})"))
+            Text(
+                text = "Selected: (${location.name}, ${location.country})",
+                color = colorResource(R.color.dark),
+                modifier = Modifier.padding(10.dp)
+            )
+
             Spacer(modifier = Modifier.height(8.dp))
+
             Button(
                 onClick = {
-                          viewModel.insertLocation(Location(location.name,location.country,location.lon,location.lat))
-                            when(viewModel.response.value){
-                                is Response.Success -> {
-                                    Toast.makeText(context, "added successfully", Toast.LENGTH_SHORT).show()}
-                                else -> {Toast.makeText(context, "couldn't be added", Toast.LENGTH_SHORT).show()}
-                            }
-                          },
+                    viewModel.insertLocation(
+                        Location(
+                            name = location.name,
+                            country = location.country,
+                            lon = location.lon,
+                            lat = location.lat
+                        )
+                    )
+
+                    when (viewModel.response.value) {
+                        is Response.Success -> {
+                            Toast.makeText(context, "Added successfully", Toast.LENGTH_SHORT).show()
+                        }
+
+                        else -> {
+                            Toast.makeText(context, "Couldn't be added", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
             ) {
-                Icon(Icons.Default.LocationOn, contentDescription = "Add to Favorites")
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = "Add to Favorites"
+                )
+                Spacer(modifier = Modifier.width(4.dp))
                 Text("Save Location")
             }
         }

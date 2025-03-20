@@ -2,7 +2,6 @@ package com.example.weatherforecast.view.home
 
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.weatherforecast.data.pojo.DailyDetails
@@ -37,6 +35,7 @@ import com.example.weatherforecast.view.GetWeatherData
 import com.example.weatherforecast.view.HourlyWeatherSection
 import com.example.weatherforecast.view.NoInternetGif
 import com.example.weatherforecast.view.TodayDetailsSection
+import com.example.weatherforecast.view.TopBar
 import com.example.weatherforecast.view.TopWeatherSection
 import com.example.weatherforecast.view.WaitingGif
 import com.example.weatherforecast.view.WeatherLocationSection
@@ -58,10 +57,7 @@ class HomePageActivity : ComponentActivity() {
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-@Preview(
-    showBackground = true,
-    backgroundColor = 0x48319D
-)@Composable
+@Composable
 fun MainScreen() {
     var temp by remember { mutableDoubleStateOf(0.0) }
     var feelLike by remember { mutableDoubleStateOf(0.0) }
@@ -112,6 +108,9 @@ fun MainScreen() {
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     item {
+                        TopBar(viewModel,context)
+                    }
+                    item {
                         TopWeatherSection(weather, feelLike, state)
                     }
 
@@ -141,7 +140,5 @@ fun MainScreen() {
     }else{
         NoInternetGif()
     }
-
-
 }
 

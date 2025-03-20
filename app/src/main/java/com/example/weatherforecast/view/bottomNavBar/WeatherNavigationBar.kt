@@ -1,4 +1,4 @@
-package com.example.weatherforecast.view.navigation
+package com.example.weatherforecast.view.bottomNavBar
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -7,44 +7,24 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.colorResource
+import androidx.navigation.compose.rememberNavController
 import com.example.weatherforecast.R
-import com.example.weatherforecast.view.favorite.DetailsScreen
-import com.example.weatherforecast.view.favorite.FavActivity
-import com.example.weatherforecast.view.favorite.MapScreen
-import com.example.weatherforecast.view.home.MainScreen
+import com.example.weatherforecast.view.navigation.SetUpNavHost
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun WeatherNavigationBar() {
-    var selectedItem by remember { mutableStateOf<BottomNavItem>(BottomNavItem.Home) }
+    val navController = rememberNavController()
+
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(selectedItem) {
-                selectedItem = it
-            }
-        },floatingActionButton = {
-            if (selectedItem == BottomNavItem.Favorite) {
-                FloatingActionButton(onClick = {
-
-                }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Favorite")
-                }
-            }
-        }
-    ) { paddingValues ->
+                BottomNavigationBar(navController)
+        }) { paddingValues ->
         Column(
             Modifier
                 .fillMaxSize()
@@ -65,13 +45,7 @@ fun WeatherNavigationBar() {
                 )
                 .padding(paddingValues)
         ) {
-            when (selectedItem) {
-                BottomNavItem.Home -> MainScreen()
-                BottomNavItem.Favorite -> FavActivity().ShowFav()
-                BottomNavItem.Alert -> MapScreen()
-                BottomNavItem.Settings -> DetailsScreen()
-            }
+            SetUpNavHost(navController)
         }
     }
-
 }

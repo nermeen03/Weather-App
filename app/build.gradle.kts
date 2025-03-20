@@ -3,11 +3,22 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
+    kotlin("plugin.serialization") version "2.1.10"
 }
 
 android {
     namespace = "com.example.weatherforecast"
     compileSdk = 35
+
+    packagingOptions {
+        resources {
+            excludes += "META-INF/LICENSE-notice.md"
+            excludes += "META-INF/LICENSE.md"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/AL2.0"
+            excludes += "META-INF/LGPL2.1"
+        }
+    }
 
     defaultConfig {
         applicationId = "com.example.weatherforecast"
@@ -38,6 +49,7 @@ android {
     buildFeatures {
         compose = true
     }
+
 }
 
 dependencies {
@@ -77,7 +89,15 @@ dependencies {
     implementation(libs.coil.gif)
     implementation (libs.osmdroid.android)
     implementation (libs.android.sdk)
+    implementation(libs.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
 
-
+    implementation(libs.kotlinx.coroutines.android)
+    testImplementation(libs.kotlinx.coroutines.test.v173)
+    androidTestImplementation(libs.kotlinx.coroutines.test.v173)
+    testImplementation (libs.mockk.android)
+    testImplementation (libs.mockk.agent)
+    androidTestImplementation (libs.mockk.android)
+    androidTestImplementation (libs.mockk.agent)
 
 }

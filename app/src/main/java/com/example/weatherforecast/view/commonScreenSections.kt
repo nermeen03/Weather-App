@@ -1,8 +1,9 @@
 package com.example.weatherforecast.view
 
+import android.content.Context
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
-import android.util.Log
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,8 +18,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -30,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,7 +49,6 @@ import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.pojo.WeatherDetails
 import com.example.weatherforecast.data.repo.Response
 import com.example.weatherforecast.view.utils.AppLocationHelper
-import com.example.weatherforecast.viewModel.CountryDetailsViewModel
 import com.example.weatherforecast.viewModel.DailyDataViewModel
 import java.time.LocalDate
 
@@ -100,6 +105,38 @@ fun NoInternetGif() {
     }
 }
 
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun TopBar(viewModel: DailyDataViewModel, context: Context) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically ,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Box(modifier = Modifier.weight(1f))
+
+        Text(
+            text = "Weather App",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            modifier = Modifier.weight(4f),
+            textAlign = TextAlign.Center
+        )
+        IconButton(
+            onClick = { refreshWeather(viewModel, context) },
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = "Refresh",
+                tint = Color.White
+            )
+        }
+    }
+}
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -360,7 +397,7 @@ fun GetWeatherDataByLoc(
     updateList: (
         List<HourlyDetails>,
         List<HourlyDetails>) -> Unit,
-    lat:Double,long:Double,viewModel: CountryDetailsViewModel
+    lat:Double,long:Double,viewModel: DailyDataViewModel
 ) {
     val currentWeather = viewModel.currentWeatherDetails.collectAsStateWithLifecycle()
     val filteredWeather = viewModel.filteredWeatherData.collectAsStateWithLifecycle()
@@ -383,4 +420,14 @@ fun GetWeatherDataByLoc(
         }
     }
 
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun refreshWeather(viewModel: DailyDataViewModel,context: Context) {
+    val currentLocation =  AppLocationHelper.locationState
+    val lat = currentLocation.value?.first ?: -1.0
+    val long = currentLocation.value?.second ?: -1.0
+
+    Toast.makeText(context, "Loading.....", Toast.LENGTH_SHORT).show()
+    viewModel.fetchWeatherData(lat,long)
 }

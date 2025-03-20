@@ -36,8 +36,6 @@ data class LocalNames(
 )
 
 
-class CountriesList : ArrayList<CountriesListItem>()
-
 data class CountriesListItem(
     val coord: Coord,
     val country: String,

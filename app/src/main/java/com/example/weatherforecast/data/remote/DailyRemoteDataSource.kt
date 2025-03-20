@@ -5,7 +5,7 @@ import com.example.weatherforecast.data.pojo.ForecastDataResponse
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-class DailyRemoteDataSource(private var apiService: ApiService) : IDailyRemoteDataSource {
+class DailyRemoteDataSource(private var apiService: ApiService = RetrofitHelper.retrofitInstance.create(ApiService::class.java)) : IDailyRemoteDataSource {
 
     override fun getDailyData(lat: Double, lon: Double): Flow<ForecastDataResponse> = flow {
         val response = apiService.get5DaysEvery3HoursData(lat, lon)

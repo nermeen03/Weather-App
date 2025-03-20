@@ -1,12 +1,8 @@
 package com.example.weatherforecast.view.favorite
 
 import android.os.Build
-import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,26 +37,14 @@ import com.example.weatherforecast.view.WaitingGif
 import com.example.weatherforecast.view.WeatherLocationSection
 import com.example.weatherforecast.view.utils.internet
 import com.example.weatherforecast.view.utils.isInternetAvailable
-import com.example.weatherforecast.viewModel.CountryDetailsViewModel
-import com.example.weatherforecast.viewModel.CountryDetailsViewModelFactory
+import com.example.weatherforecast.viewModel.DailyDataViewModel
+import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
 
-class CountryDetailsActivity : ComponentActivity() {
-    @RequiresApi(Build.VERSION_CODES.O)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            DetailsScreen()
-        }
-    }
-}
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun DetailsScreen() {
-    val lat = 70.0
-    val lon = 70.0
-
+fun DetailsScreen(lat:Double,lon:Double) {
+    
     var temp by remember { mutableDoubleStateOf(0.0) }
     var feelLike by remember { mutableDoubleStateOf(0.0) }
     var weather by remember { mutableStateOf("") }
@@ -72,11 +56,8 @@ fun DetailsScreen() {
     var daysList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
 
     val context = LocalContext.current
-    val viewModel: CountryDetailsViewModel =
-        viewModel(factory = CountryDetailsViewModelFactory(
-            DailyDataRepository.getRepository(
-                RetrofitHelper.retrofitInstance.create(ApiService::class.java)))
-        )
+    val viewModel: DailyDataViewModel =
+        viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
 
     isInternetAvailable(context)
     val internet = internet.observeAsState()

@@ -9,7 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
-import com.example.weatherforecast.view.navigation.WeatherNavigationBar
+import com.example.weatherforecast.view.bottomNavBar.WeatherNavigationBar
 import com.example.weatherforecast.view.utils.AppLocationHelper
 import org.maplibre.android.MapLibre
 import org.maplibre.android.WellKnownTileServer

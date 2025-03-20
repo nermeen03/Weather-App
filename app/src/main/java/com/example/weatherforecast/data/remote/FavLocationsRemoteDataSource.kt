@@ -1,6 +1,5 @@
 package com.example.weatherforecast.data.remote
 
-import android.util.Log
 import kotlinx.coroutines.flow.flow
 
 class FavLocationsRemoteDataSource(private val apiService: ApiService) : IFavLocationsRemoteDataSource {

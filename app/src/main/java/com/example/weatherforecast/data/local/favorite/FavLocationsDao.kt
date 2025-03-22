@@ -1,4 +1,4 @@
-package com.example.weatherforecast.data.local
+package com.example.weatherforecast.data.local.favorite
 
 import androidx.room.Dao
 import androidx.room.Insert

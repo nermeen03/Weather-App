@@ -15,6 +15,8 @@ sealed class ScreenRoute(val route: String) {
     @Serializable
     data object AlertScreenRoute : ScreenRoute("alert")
     @Serializable
+    data object ChoosingScreenRoute : ScreenRoute("choose")
+    @Serializable
     data object SettingsScreenRoute : ScreenRoute("settings")
 
     companion object {

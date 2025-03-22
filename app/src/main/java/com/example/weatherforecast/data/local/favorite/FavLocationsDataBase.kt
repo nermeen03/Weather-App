@@ -1,4 +1,4 @@
-package com.example.weatherforecast.data.local
+package com.example.weatherforecast.data.local.favorite
 
 import android.content.Context
 import androidx.room.Database
@@ -9,14 +9,14 @@ import com.example.weatherforecast.data.pojo.Location
 @Database(entities = [Location::class], version = 3)
 abstract class FavLocationsDataBase: RoomDatabase() {
 
-    abstract fun getFavLocationsDao():FavLocationsDao
+    abstract fun getFavLocationsDao(): FavLocationsDao
     companion object{
-        private var INSTANCE:FavLocationsDataBase?=null
+        private var INSTANCE: FavLocationsDataBase?=null
 
-        fun getInstance(ctx: Context):FavLocationsDataBase{
+        fun getInstance(ctx: Context): FavLocationsDataBase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
-                    ctx.applicationContext, FavLocationsDataBase::class.java, "app_dateBase")
+                    ctx.applicationContext, FavLocationsDataBase::class.java, "favDB")
                     .build()
                 INSTANCE = instance
                 instance }

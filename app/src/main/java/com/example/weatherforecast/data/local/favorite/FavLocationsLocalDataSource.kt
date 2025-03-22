@@ -1,9 +1,9 @@
-package com.example.weatherforecast.data.local
+package com.example.weatherforecast.data.local.favorite
 
 import com.example.weatherforecast.data.pojo.Location
 import kotlinx.coroutines.flow.Flow
 
-class FavLocationsLocalDataSource(private val favLocationsDao:FavLocationsDao) :
+class FavLocationsLocalDataSource(private val favLocationsDao: FavLocationsDao) :
     IFavLocationsLocalDataSource {
 
     override fun getAllFav(): Flow<List<Location>> {

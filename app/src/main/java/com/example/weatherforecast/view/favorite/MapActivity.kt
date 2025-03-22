@@ -42,8 +42,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.weatherforecast.R
-import com.example.weatherforecast.data.local.FavLocationsDataBase
-import com.example.weatherforecast.data.local.FavLocationsLocalDataSource
+import com.example.weatherforecast.data.local.favorite.FavLocationsDataBase
+import com.example.weatherforecast.data.local.favorite.FavLocationsLocalDataSource
 import com.example.weatherforecast.data.pojo.LocalNames
 import com.example.weatherforecast.data.pojo.Location
 import com.example.weatherforecast.data.pojo.NameResponseItem
@@ -51,7 +51,7 @@ import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource
 import com.example.weatherforecast.data.remote.RetrofitHelper
 import com.example.weatherforecast.data.repo.FavLocationsRepository
-import com.example.weatherforecast.data.repo.Response
+import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch

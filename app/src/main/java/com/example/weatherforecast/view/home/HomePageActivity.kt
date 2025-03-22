@@ -29,7 +29,7 @@ import com.example.weatherforecast.data.pojo.WeatherDetails
 import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.RetrofitHelper
 import com.example.weatherforecast.data.repo.DailyDataRepository
-import com.example.weatherforecast.data.repo.Response
+import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.view.DailyWeatherSection
 import com.example.weatherforecast.view.GetWeatherData
 import com.example.weatherforecast.view.HourlyWeatherSection

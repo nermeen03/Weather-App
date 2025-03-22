@@ -2,7 +2,7 @@ package com.example.weatherforecast.viewModel
 
 import com.example.weatherforecast.data.pojo.Location
 import com.example.weatherforecast.data.repo.FavLocationsRepository
-import com.example.weatherforecast.data.repo.Response
+import com.example.weatherforecast.data.Response
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers

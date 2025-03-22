@@ -42,14 +42,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.weatherforecast.R
-import com.example.weatherforecast.data.local.FavLocationsDataBase
-import com.example.weatherforecast.data.local.FavLocationsLocalDataSource
+import com.example.weatherforecast.data.Response
+import com.example.weatherforecast.data.local.favorite.FavLocationsDataBase
+import com.example.weatherforecast.data.local.favorite.FavLocationsLocalDataSource
 import com.example.weatherforecast.data.pojo.Location
 import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource
 import com.example.weatherforecast.data.remote.RetrofitHelper
 import com.example.weatherforecast.data.repo.FavLocationsRepository
-import com.example.weatherforecast.data.repo.Response
 import com.example.weatherforecast.view.navigation.ScreenRoute
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
 
@@ -108,7 +108,7 @@ fun FavScreen(navController: NavHostController,
             if (favList.isEmpty()) {
                 NoFav()
             } else {
-                FavList(favList, viewModel, navController,navToDetails)
+                FavList(favList, viewModel,navToDetails)
             }
         }
     }
@@ -128,7 +128,6 @@ fun NoFav() {
 fun FavList(
     list: List<Location>,
     viewModel: FavLocationsViewModel,
-    navController: NavHostController,
     navToDetails: (lat: Double, lon: Double) -> Unit
 ) {
     LazyColumn(
@@ -139,7 +138,7 @@ fun FavList(
             FavRow(list[index], viewModel) {
                 val lat = list[index].lat
                 val lon = list[index].lon
-                navToDetails(lat, lon) // Only navigate through this function
+                navToDetails(lat, lon)
             }
         }
     }

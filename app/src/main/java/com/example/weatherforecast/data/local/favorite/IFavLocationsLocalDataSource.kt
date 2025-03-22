@@ -1,4 +1,4 @@
-package com.example.weatherforecast.data.local
+package com.example.weatherforecast.data.local.favorite
 
 import com.example.weatherforecast.data.pojo.Location
 import kotlinx.coroutines.flow.Flow

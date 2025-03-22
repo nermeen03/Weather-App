@@ -1,6 +1,6 @@
 package com.example.weatherforecast.data.repo
 
-import com.example.weatherforecast.data.local.FavLocationsLocalDataSource
+import com.example.weatherforecast.data.local.favorite.FavLocationsLocalDataSource
 import com.example.weatherforecast.data.pojo.Location
 import com.example.weatherforecast.data.pojo.NameResponse
 import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource

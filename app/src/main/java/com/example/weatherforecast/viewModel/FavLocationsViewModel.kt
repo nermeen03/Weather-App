@@ -6,12 +6,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.weatherforecast.R
+import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.pojo.CountriesListItem
 import com.example.weatherforecast.data.pojo.Location
 import com.example.weatherforecast.data.pojo.NameResponseItem
 import com.example.weatherforecast.data.repo.FavLocationsRepository
 import com.example.weatherforecast.data.repo.IFavLocationsRepository
-import com.example.weatherforecast.data.repo.Response
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineExceptionHandler

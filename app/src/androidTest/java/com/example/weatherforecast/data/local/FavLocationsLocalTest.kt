@@ -3,9 +3,9 @@ package com.example.weatherforecast.data.local
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.weatherforecast.data.local.FavLocationsDao
-import com.example.weatherforecast.data.local.FavLocationsDataBase
-import com.example.weatherforecast.data.local.FavLocationsLocalDataSource
+import com.example.weatherforecast.data.local.favorite.FavLocationsDao
+import com.example.weatherforecast.data.local.favorite.FavLocationsDataBase
+import com.example.weatherforecast.data.local.favorite.FavLocationsLocalDataSource
 import com.example.weatherforecast.data.pojo.Location
 import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource
 import com.example.weatherforecast.data.repo.FavLocationsRepository
@@ -26,7 +26,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class FavLocationsLocalTest {
 
-    private lateinit var dataBase: FavLocationsDataBase
+    private lateinit var dataBase: WeatherAppDataBase
     private lateinit var dao: FavLocationsDao
     private lateinit var favLocationsLocalDataSource: FavLocationsLocalDataSource
     private lateinit var favLocationsRemoteDataSource: FavLocationsRemoteDataSource
@@ -39,7 +39,8 @@ class FavLocationsLocalTest {
     fun setUp(){
         Dispatchers.setMain(UnconfinedTestDispatcher())
 
-        dataBase = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(),FavLocationsDataBase::class.java).allowMainThreadQueries().build()
+        dataBase = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(),
+            FavLocationsDataBase::class.java).allowMainThreadQueries().build()
         dao = dataBase.getFavLocationsDao()
 
         favLocationsLocalDataSource = FavLocationsLocalDataSource(dao)

@@ -47,7 +47,7 @@ import com.example.weatherforecast.R
 import com.example.weatherforecast.data.pojo.DailyDetails
 import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.pojo.WeatherDetails
-import com.example.weatherforecast.data.repo.Response
+import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.view.utils.AppLocationHelper
 import com.example.weatherforecast.viewModel.DailyDataViewModel
 import java.time.LocalDate

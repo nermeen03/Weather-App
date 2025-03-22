@@ -1,4 +1,4 @@
-package com.example.weatherforecast.data.repo
+package com.example.weatherforecast.data
 
 sealed class Response<T> {
     data object Loading : Response<Nothing>()

@@ -16,7 +16,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.weatherforecast.R
 import com.example.weatherforecast.view.navigation.SetUpNavHost
 
-@RequiresApi(Build.VERSION_CODES.O)
+@RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun WeatherNavigationBar() {
     val navController = rememberNavController()

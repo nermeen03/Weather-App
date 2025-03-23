@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.weatherforecast.data.pojo.AlertsData
 
-@Database(entities = [AlertsData::class], version = 3)
+@Database(entities = [AlertsData::class], version = 4)
 abstract class AlertsDataBase: RoomDatabase() {
     abstract fun getAlertsDao(): AlertsDao
     companion object{

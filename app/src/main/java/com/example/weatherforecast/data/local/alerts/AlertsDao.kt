@@ -16,6 +16,6 @@ interface AlertsDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(alert: AlertsData): Long
 
-    @Query("DELETE FROM alerts WHERE start = :start AND `end` = :end AND location = :location")
-    suspend fun delete(start:String,end:String,location:String): Int
+    @Query("DELETE FROM alerts WHERE date = :date AND `time` = :time AND location = :location")
+    suspend fun delete(date:String,time:String,location:String): Int
 }

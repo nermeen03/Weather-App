@@ -23,13 +23,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.pojo.DailyDetails
 import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.pojo.WeatherDetails
 import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.RetrofitHelper
 import com.example.weatherforecast.data.repo.DailyDataRepository
-import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.view.DailyWeatherSection
 import com.example.weatherforecast.view.GetWeatherData
 import com.example.weatherforecast.view.HourlyWeatherSection
@@ -94,7 +94,11 @@ fun MainScreen() {
             }
 
             is Response.Success -> {
-                temp = currentDetails!!.temp
+                temp = currentDetails?.temp?:0.0
+                if (temp == 0.0){
+                    WaitingGif()
+                    ////
+                }
                 feelLike = currentDetails!!.feelLike
                 weather = currentDetails!!.weather
                 location = "${currentDetails!!.place.name}, ${currentDetails!!.place.code}"

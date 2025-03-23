@@ -3,8 +3,9 @@ package com.example.weatherforecast.data.pojo
 import androidx.room.Entity
 
 
-@Entity(tableName = "alerts", primaryKeys = ["start","end","location"])
+@Entity(tableName = "alerts", primaryKeys = ["date","time","location"])
 data class AlertsData(
-    val start:String, val end:String,
+    val date:String, val time:String,
     val location:String, val lat:Double,
-    val lon:Double,val type:String)
+    val lon:Double, val type: Boolean
+)

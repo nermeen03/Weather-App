@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.androidx.monitor)
     implementation(libs.androidx.espresso.core)
     implementation(libs.play.services.maps)
+    implementation(libs.androidx.appcompat)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

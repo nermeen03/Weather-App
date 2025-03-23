@@ -5,6 +5,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -34,6 +35,7 @@ class AlertsViewModel(private val alertsRepository: IAlertsRepository):ViewModel
 
     fun insertAlert(alert: AlertsData){
         viewModelScope.launch(Dispatchers.IO+handle) {
+            Log.i("TAG", "insertAlert: ${alert.time}, ${alert.date}")
             val result = alertsRepository.insertAlert(alert)
             if(result>=0){ mutableResponse.value = Response.Success }
             else{ mutableResponse.value = Response.Failure(Exception("an error occurred")) }

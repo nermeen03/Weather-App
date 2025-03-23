@@ -2,8 +2,13 @@ package com.example.weatherforecast
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
+import android.app.AlertDialog
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,7 +23,7 @@ const val My_LOCATION_PERMISSION_ID = 200
 
 class MainActivity : ComponentActivity() {
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         MapLibre.getInstance(this, "2fc5f5f3f6a9b61df9391d8ae569f5e0", WellKnownTileServer.MapTiler)
@@ -44,7 +49,24 @@ class MainActivity : ComponentActivity() {
                 My_LOCATION_PERMISSION_ID
             )
         }
+        if (!Settings.canDrawOverlays(this)) {
+            AlertDialog.Builder(this)
+                .setTitle("Permission Required")
+                .setMessage("Allow this app to display alerts over other apps.")
+                .setPositiveButton("Grant Permission") { _, _ ->
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:$packageName")
+                    )
+                    startActivity(intent)
+                }
+                .setNegativeButton("Cancel") { _, _ ->
+                    Toast.makeText(this, "Overlay permission is needed for alerts", Toast.LENGTH_SHORT).show()
+                }
+                .show()
+        }
     }
+
 
     override fun onRequestPermissionsResult(
         requestCode: Int,

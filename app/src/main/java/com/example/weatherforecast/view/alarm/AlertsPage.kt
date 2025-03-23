@@ -7,9 +7,8 @@ import android.app.PendingIntent
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
-import android.os.Build
+import android.util.Log
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -28,20 +27,26 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -56,43 +61,42 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
 import com.example.weatherforecast.R
 import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.local.alerts.AlertsDataBase
 import com.example.weatherforecast.data.local.alerts.AlertsLocalDataSource
 import com.example.weatherforecast.data.pojo.AlertsData
 import com.example.weatherforecast.data.repo.AlertsRepository
-import com.example.weatherforecast.view.navigation.ScreenRoute
-import com.example.weatherforecast.view.utils.checkExactAlarmPermission
-import com.example.weatherforecast.view.utils.requestExactAlarmPermission
+import com.example.weatherforecast.view.utils.AppLocationHelper
 import com.example.weatherforecast.viewModel.AlertsViewModel
 import java.util.Calendar
+import java.util.Date
 
 @Composable
-fun AlertsScreen(navController: NavHostController) {
+fun AlertsScreen() {
     val context = LocalContext.current
+    var showBottomSheet by remember { mutableStateOf(false) }
+
+    val currentLocation =  AppLocationHelper.locationState.observeAsState()
+
+    val lat = currentLocation.value?.first ?: -1.0
+    val long = currentLocation.value?.second ?: -1.0
+
+    val loc = ""
 
     val viewModel: AlertsViewModel = viewModel(
         factory = AlertsViewModel.AlertsViewModelFactory(
             AlertsRepository.getRepository(
                 AlertsLocalDataSource(AlertsDataBase.getInstance(context).getAlertsDao()))))
 
-    LaunchedEffect(Unit) {
-        viewModel.getAllAlerts()
-    }
-
+    viewModel.getAllAlerts()
     val alertsList by viewModel.alertsList.collectAsStateWithLifecycle()
 
 
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {
-                    navController.navigate(ScreenRoute.ChoosingScreenRoute.route) {
-                        launchSingleTop = true
-                    }
-                }
+                onClick = { showBottomSheet = true }
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Go to Map")
             }
@@ -122,6 +126,15 @@ fun AlertsScreen(navController: NavHostController) {
                 NoAlerts()
             } else {
                 AlertsList(alertsList,viewModel)
+            }
+            if (showBottomSheet) {
+                ChooseAlertDialog(
+                    onDismiss = { showBottomSheet = false },
+                    onConfirm = { time, isAlarm,data,duration ->
+                        setExactAlarm(context, time, isAlarm,viewModel,data,duration)
+                    },
+                    lat,long,loc
+                )
             }
         }
     }
@@ -169,20 +182,34 @@ fun AlertRow(item: AlertsData, viewModel: AlertsViewModel) {
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = "${item.start}, ${item.end}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${item.date}, ${item.time}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Icon(
+                        imageVector = if (item.type) Icons.Default.Alarm else Icons.Default.Notifications,
+                        contentDescription = if (item.type) "Alarm" else "Notification"
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(4.dp))
+
                 Text(
-                    text = "Lat: ${item.location}",
+                    text = item.location,
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
 
+
             Button(
                 onClick = {
-                    viewModel.deleteAlert(item.start,item.end,item.location)
+                    viewModel.deleteAlert(item.date,item.time,item.location)
                     when (viewModel.response.value) {
                         is Response.Success -> {
                             Toast.makeText(context, "Removed successfully", Toast.LENGTH_SHORT).show()
@@ -205,20 +232,30 @@ fun AlertRow(item: AlertsData, viewModel: AlertsViewModel) {
 }
 
 @SuppressLint("DefaultLocale")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChooseAlert() {
+fun ChooseAlertDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (Long, Boolean,AlertsData,Long) -> Unit,
+    lat:Double,lon:Double,location: String
+) {
     val context = LocalContext.current
     val calendar = remember { Calendar.getInstance() }
 
     var selectedDate by remember { mutableStateOf("") }
     var selectedTime by remember { mutableStateOf("") }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
     var selectedAlertType by remember { mutableStateOf("Alarm") }
+    var selectedMinutes by remember { mutableIntStateOf(0) }
+    var selectedSeconds by remember { mutableIntStateOf(0) }
+    val totalMillis = (selectedMinutes * 60 + selectedSeconds) * 1000L
+
 
     val datePickerDialog = DatePickerDialog(
         context,
         { _, year, month, dayOfMonth ->
+            calendar.set(Calendar.YEAR, year)
+            calendar.set(Calendar.MONTH, month)
+            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
             selectedDate = "$dayOfMonth/${month + 1}/$year"
         },
         calendar.get(Calendar.YEAR),
@@ -229,6 +266,9 @@ fun ChooseAlert() {
     val timePickerDialog = TimePickerDialog(
         context,
         { _, hourOfDay, minute ->
+            calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+            calendar.set(Calendar.MINUTE, minute)
+            calendar.set(Calendar.SECOND, 0)
             selectedTime = String.format("%02d:%02d", hourOfDay, minute)
         },
         calendar.get(Calendar.HOUR_OF_DAY),
@@ -236,151 +276,160 @@ fun ChooseAlert() {
         false
     )
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = {
-                if (selectedAlertType == "Alarm") {
-                    scheduleAlarm(context, selectedDate, selectedTime)
-                } else {
-                    scheduleNotification(
-                        context, selectedDate, selectedTime)
+    ModalBottomSheet(
+        onDismissRequest = { onDismiss() },
+        content = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Select Date and Time", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(onClick = { datePickerDialog.show() }) {
+                    Text(if (selectedDate.isEmpty()) "Select Date" else "Date: $selectedDate")
                 }
-            }) {
-                Icon(Icons.Default.Check, contentDescription = "Confirm Alert")
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(onClick = { timePickerDialog.show() }) {
+                    Text(if (selectedTime.isEmpty()) "Select Time" else "Time: $selectedTime")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("Choose Alert Type", fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { selectedAlertType = "Alarm" }
+                    ) {
+                        RadioButton(
+                            selected = selectedAlertType == "Alarm",
+                            onClick = { selectedAlertType = "Alarm" }
+                        )
+                        Text("Alarm")
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { selectedAlertType = "Notification" }
+                    ) {
+                        RadioButton(
+                            selected = selectedAlertType == "Notification",
+                            onClick = { selectedAlertType = "Notification" }
+                        )
+                        Text("Notification")
+                    }
+                }
+                if (selectedAlertType == "Alarm") {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        DropdownSelector(
+                            label = "Minutes",
+                            options = (0..10).toList(),
+                            selectedOption = selectedMinutes,
+                            onOptionSelected = { selectedMinutes = it }
+                        )
+
+                        DropdownSelector(
+                            label = "Seconds",
+                            options = (0..59).toList(),
+                            selectedOption = selectedSeconds,
+                            onOptionSelected = { selectedSeconds = it }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text("Total Duration: $selectedMinutes min $selectedSeconds sec ($totalMillis ms)")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(onClick = {
+                    if (selectedDate.isNotEmpty() && selectedTime.isNotEmpty()) {
+                        if (calendar.timeInMillis > System.currentTimeMillis()) {
+                            val alertData = AlertsData(selectedDate,selectedTime,location,lat,lon,selectedAlertType == "Alarm")
+                            onConfirm(calendar.timeInMillis, selectedAlertType == "Alarm",alertData,totalMillis)
+                            onDismiss()
+                        } else {
+                            Toast.makeText(context, "Select a future time!", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Toast.makeText(context, "Select date and time first!", Toast.LENGTH_SHORT).show()
+                    }
+                }) {
+                    Text(text = "Set Alert")
+                }
             }
         }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Select Date and Time", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(onClick = { showDatePicker = true }) {
-                Text(if (selectedDate.isEmpty()) "Select Date" else "Date: $selectedDate")
-            }
-            if (showDatePicker) datePickerDialog.show()
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(onClick = { showTimePicker = true }) {
-                Text(if (selectedTime.isEmpty()) "Select Time" else "Time: $selectedTime")
-            }
-            if (showTimePicker) timePickerDialog.show()
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text("Choose Alert Type", fontSize = 18.sp, fontWeight = FontWeight.Medium)
-            Row {
-                RadioButton(
-                    selected = selectedAlertType == "Alarm",
-                    onClick = { selectedAlertType = "Alarm" }
-                )
-                Text("Alarm", modifier = Modifier.clickable { selectedAlertType = "Alarm" })
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                RadioButton(
-                    selected = selectedAlertType == "Notification",
-                    onClick = { selectedAlertType = "Notification" }
-                )
-                Text("Notification", modifier = Modifier.clickable { selectedAlertType = "Notification" })
-            }
-        }
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.S)
-@Composable
-fun AlarmSchedulerScreen() {
-    val context = LocalContext.current
-
-    var date by remember { mutableStateOf("") }
-    var time by remember { mutableStateOf("") }
-    var calendar = Calendar.getInstance()
-
-    Column(modifier = Modifier.padding(16.dp)) {
-        Button(onClick = {
-            DatePickerDialog(context, { _, year, month, day ->
-                calendar.set(year, month, day)
-                date = "$day/${month + 1}/$year"
-            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
-        }) {
-            Text(text = date.ifEmpty { "Pick Date" })
-        }
-
-        Button(onClick = {
-            TimePickerDialog(context, { _, hour, minute ->
-                calendar.set(Calendar.HOUR_OF_DAY, hour)
-                calendar.set(Calendar.MINUTE, minute)
-                time = "$hour:$minute"
-            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show()
-        }) {
-            Text(text = time.ifEmpty { "Pick Time" })
-        }
-
-        Button(onClick = {
-            if (checkExactAlarmPermission(context)) {
-                setExactAlarm(context, calendar.timeInMillis)
-                Toast.makeText(context, "Alarm Set!", Toast.LENGTH_SHORT).show()
-            } else {
-                requestExactAlarmPermission(context)
-            }
-        }) {
-            Text(text = "Set Alarm")
-        }
-    }
-}
-
-
-@SuppressLint("ScheduleExactAlarm")
-fun scheduleAlarm(context: Context, date: String, time: String) {
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    val intent = Intent(context, AlarmReceiver::class.java)
-    val pendingIntent = PendingIntent.getBroadcast(
-        context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
-
-    val calendar = Calendar.getInstance().apply {
-        val (day, month, year) = date.split("/").map { it.toInt() }
-        val (hour, minute) = time.split(":").map { it.toInt() }
-        set(year, month - 1, day, hour, minute, 0)
-    }
-
-    alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
-    Toast.makeText(context, "Alarm set for $date at $time", Toast.LENGTH_SHORT).show()
-}
-@SuppressLint("ScheduleExactAlarm")
-fun scheduleNotification(context: Context, date: String, time: String) {
-    val intent = Intent(context, NotificationReceiver::class.java)
-    val pendingIntent = PendingIntent.getBroadcast(
-        context, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
-
-    val calendar = Calendar.getInstance().apply {
-        val (day, month, year) = date.split("/").map { it.toInt() }
-        val (hour, minute) = time.split(":").map { it.toInt() }
-        set(year, month - 1, day, hour, minute, 0)
-    }
-
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
-
-    Toast.makeText(context, "Notification scheduled for $date at $time", Toast.LENGTH_SHORT).show()
 }
 
+
+
 @SuppressLint("ScheduleExactAlarm")
-fun setExactAlarm(context: Context, timeInMillis: Long) {
+fun setExactAlarm(context: Context, timeInMillis: Long, isAlarm: Boolean,viewModel: AlertsViewModel,data: AlertsData,duration:Long) {
     val alarmManager = context.getSystemService(AlarmManager::class.java)
-    val intent = Intent(context, AlarmReceiver::class.java).let { intent ->
-        PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+    val intent = Intent(context, AlarmReceiver::class.java).apply {
+        putExtra("DATE", data.date)
+        putExtra("TIME", data.time)
+        putExtra("LOC", data.location)
+        putExtra("LAT", data.lat)
+        putExtra("LONG", data.lon)
+        putExtra("IS_ALARM", isAlarm)
+        putExtra("DURATION", duration)
     }
 
-    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeInMillis, intent)
+    val pendingIntent = PendingIntent.getBroadcast(
+        context,
+        System.currentTimeMillis().toInt(),
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+
+    if (timeInMillis > System.currentTimeMillis()) {
+        Log.d("Alarm", "Setting alarm for: ${Date(timeInMillis)}")
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            timeInMillis,
+            pendingIntent
+        )
+        viewModel.insertAlert(data)
+        Toast.makeText(context, "Alarm set successfully!", Toast.LENGTH_SHORT).show()
+    } else {
+        Toast.makeText(context, "Cannot set alarm in the past!", Toast.LENGTH_SHORT).show()
+    }
 }
+@Composable
+fun DropdownSelector(label: String, options: List<Int>, selectedOption: Int, onOptionSelected: (Int) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        Button(onClick = { expanded = true }) {
+            Text("$label: $selectedOption")
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.toString()) },
+                    onClick = {
+                        onOptionSelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+

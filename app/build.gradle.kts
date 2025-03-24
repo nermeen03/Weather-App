@@ -92,6 +92,8 @@ dependencies {
     implementation (libs.android.sdk)
     implementation(libs.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.translate)
+
 
     implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.kotlinx.coroutines.test.v173)

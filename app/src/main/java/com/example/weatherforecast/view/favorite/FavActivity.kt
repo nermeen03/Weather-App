@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -82,7 +83,7 @@ fun FavScreen(navController: NavHostController,
                     }
                 }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Go to Map")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.go_to_map))
             }
         }
     ) { paddingValues ->
@@ -120,7 +121,7 @@ fun NoFav() {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(color = Color.White, text = "You don't have favorites", fontSize = 20.sp)
+        Text(color = Color.White, text = stringResource(R.string.you_don_t_have_favorites), fontSize = 20.sp)
     }
 }
 
@@ -152,7 +153,8 @@ fun FavRow(item: Location, viewModel: FavLocationsViewModel,function: () -> Unit
     Card(
         modifier = Modifier
             .padding(8.dp)
-            .fillMaxWidth().clickable(onClick = function),
+            .fillMaxWidth()
+            .clickable(onClick = function),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Row(
@@ -170,7 +172,7 @@ fun FavRow(item: Location, viewModel: FavLocationsViewModel,function: () -> Unit
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Lat: ${item.lat}, Lon: ${item.lon}",
+                    text = stringResource(R.string.lat) + item.lat + stringResource(R.string.lon) +item.lon,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -180,10 +182,10 @@ fun FavRow(item: Location, viewModel: FavLocationsViewModel,function: () -> Unit
                     viewModel.deleteLocation(item.lat, item.lon)
                     when (viewModel.response.value) {
                         is Response.Success -> {
-                            Toast.makeText(context, "Removed successfully", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.removed_successfully), Toast.LENGTH_SHORT).show()
                         }
                         else -> {
-                            Toast.makeText(context, "Couldn't be removed", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.couldn_t_be_removed), Toast.LENGTH_SHORT).show()
                         }
                     }
                 },
@@ -193,7 +195,7 @@ fun FavRow(item: Location, viewModel: FavLocationsViewModel,function: () -> Unit
                 ),
                 modifier = Modifier.wrapContentWidth()
             ) {
-                Text("Remove")
+                Text(stringResource(R.string.remove))
             }
         }
     }

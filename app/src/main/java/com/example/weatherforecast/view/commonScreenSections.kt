@@ -1,5 +1,6 @@
 package com.example.weatherforecast.view
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
@@ -34,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,11 +45,12 @@ import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
+import com.example.weatherforecast.MyApplication
 import com.example.weatherforecast.R
+import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.pojo.DailyDetails
 import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.pojo.WeatherDetails
-import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.view.utils.AppLocationHelper
 import com.example.weatherforecast.viewModel.DailyDataViewModel
 import java.time.LocalDate
@@ -118,7 +121,7 @@ fun TopBar(viewModel: DailyDataViewModel, context: Context) {
         Box(modifier = Modifier.weight(1f))
 
         Text(
-            text = "Weather App",
+            text = stringResource(id = R.string.top_name),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White,
@@ -131,23 +134,27 @@ fun TopBar(viewModel: DailyDataViewModel, context: Context) {
         ) {
             Icon(
                 imageVector = Icons.Default.Refresh,
-                contentDescription = "Refresh",
+                contentDescription = stringResource(R.string.refresh),
                 tint = Color.White
             )
         }
     }
 }
 
+@SuppressLint("StateFlowValueCalledInComposition")
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun TopWeatherSection(weather: String, feelLike: Double,state: String) {
+    val context = LocalContext.current
+    val application = context.applicationContext as MyApplication
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
             Text(weather, fontSize = 24.sp, color = Color.White)
-            Text("Feels like $feelLike°C", color = Color.White)
+            Text(application.translateText(stringResource(R.string.feels_like)) + feelLike + application.translateChar(application.temp.value.toCharArray()[0]), color = Color.White)
         }
         Column {
             AsyncImage(
@@ -157,7 +164,7 @@ fun TopWeatherSection(weather: String, feelLike: Double,state: String) {
             )
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text("Today", fontSize = 20.sp, color = Color.White)
+            Text(application.translateText(stringResource(R.string.today)), fontSize = 20.sp, color = Color.White)
             val today = LocalDate.now().toString()
             Text(today, fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Bold)
         }
@@ -176,7 +183,7 @@ fun WeatherLocationSection(temp: Double,location:String) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "$temp°C",
+                text = temp.toString() + stringResource(R.string.c),
                 fontSize = 32.sp,
                 color = Color.White,
                 fontWeight = FontWeight.Bold
@@ -195,7 +202,7 @@ fun WeatherLocationSection(temp: Double,location:String) {
 
 @Composable
 fun HourlyWeatherSection(hourlyList: List<HourlyDetails>) {
-    Text("Hourly Forecast", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+    Text(stringResource(R.string.hourly_forecast), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
     LazyRow(
         contentPadding = PaddingValues(vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -208,7 +215,7 @@ fun HourlyWeatherSection(hourlyList: List<HourlyDetails>) {
 
 @Composable
 fun TodayDetailsSection(details: DailyDetails?) {
-    Text("Today Details", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+    Text(stringResource(R.string.today_details), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -218,12 +225,12 @@ fun TodayDetailsSection(details: DailyDetails?) {
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                WeatherDetailItem("Pressure", "${details?.pressure ?: "--"} hPa")
-                WeatherDetailItem("Speed", "${details?.speed ?: "--"} km/h")
+                WeatherDetailItem(stringResource(R.string.pressure), "${details?.pressure ?: stringResource(R.string.dash)}" + stringResource(R.string.hpa))
+                WeatherDetailItem(stringResource(R.string.speed), "${details?.speed ?: stringResource(R.string.dash)}"+ stringResource(R.string.km_h))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                WeatherDetailItem("Humidity", "${details?.humidity ?: "--"}%")
-                WeatherDetailItem("Cloud", "${details?.cloud ?: "--"}%")
+                WeatherDetailItem(stringResource(R.string.humidity), "${details?.humidity ?: stringResource(R.string.dash)}"+ stringResource(R.string.percent))
+                WeatherDetailItem(stringResource(R.string.cloud), "${details?.cloud ?: stringResource(R.string.dash)}"+stringResource(R.string.percent))
             }
         }
     }
@@ -232,7 +239,7 @@ fun TodayDetailsSection(details: DailyDetails?) {
 @Composable
 fun DailyWeatherSection(daysList: List<HourlyDetails>) {
     Text(
-        "Daily Forecast",
+        stringResource(R.string.daily_forecast),
         color = Color.White,
         fontSize = 18.sp,
         fontWeight = FontWeight.SemiBold,
@@ -269,7 +276,7 @@ fun HourlyDataCard(details: HourlyDetails) {
                 contentDescription = null,
                 modifier = Modifier.size(60.dp)
             )
-            Text("${details.temp}°C", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(details.temp.toString() + stringResource(R.string.c), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -330,19 +337,19 @@ fun DayDataCard(details: HourlyDetails) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${details.temp}°C",
+                    text = details.temp.toString()+stringResource(R.string.c),
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Medium
                 )
                 Column(modifier = Modifier.padding(start = 16.dp)) {
                     Text(
-                        text = "Feels like",
+                        text = stringResource(R.string.feels_like),
                         color = colorResource(id = R.color.light_green),
                         fontSize = 12.sp
                     )
                     Text(
-                        text = "${details.feelLike}°C",
+                        text = details.feelLike.toString()+stringResource(R.string.c),
                         color = Color.White,
                         fontWeight = FontWeight.Medium
                     )
@@ -428,6 +435,6 @@ fun refreshWeather(viewModel: DailyDataViewModel,context: Context) {
     val lat = currentLocation.value?.first ?: -1.0
     val long = currentLocation.value?.second ?: -1.0
 
-    Toast.makeText(context, "Loading.....", Toast.LENGTH_SHORT).show()
+    Toast.makeText(context, context.getString(R.string.loading), Toast.LENGTH_SHORT).show()
     viewModel.fetchWeatherData(lat,long)
 }

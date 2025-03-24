@@ -11,6 +11,7 @@ import com.example.weatherforecast.view.favorite.DetailsScreen
 import com.example.weatherforecast.view.favorite.FavScreen
 import com.example.weatherforecast.view.favorite.MapScreen
 import com.example.weatherforecast.view.home.MainScreen
+import com.example.weatherforecast.view.settings.SettingsScreen
 
 
 @RequiresApi(Build.VERSION_CODES.S)
@@ -28,7 +29,7 @@ fun SetUpNavHost(navController: NavHostController) {
                 }
             })
         }
-        composable(ScreenRoute.MapScreenRoute.route) { MapScreen() }
+        composable(ScreenRoute.MapScreenRoute.route) { MapScreen(navController) }
         composable("details/{lat}/{lon}") { backStackEntry ->
             val lat = backStackEntry.arguments?.getString("lat")?.toDoubleOrNull() ?: 0.0
             val lon = backStackEntry.arguments?.getString("lon")?.toDoubleOrNull() ?: 0.0
@@ -36,7 +37,7 @@ fun SetUpNavHost(navController: NavHostController) {
         }
         composable(ScreenRoute.AlertScreenRoute.route) { AlertsScreen() }
 
-        composable(ScreenRoute.SettingsScreenRoute.route) { /* TODO: Settings Screen */ }
+        composable(ScreenRoute.SettingsScreenRoute.route) { SettingsScreen(navController) }
 
     }
 }

@@ -1,10 +1,5 @@
 package com.example.weatherforecast.viewModel
 
-import android.annotation.SuppressLint
-import android.app.AlarmManager
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -12,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.pojo.AlertsData
 import com.example.weatherforecast.data.repo.IAlertsRepository
-import com.example.weatherforecast.view.alarm.AlarmReceiver
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,19 +52,6 @@ class AlertsViewModel(private val alertsRepository: IAlertsRepository):ViewModel
                 }
         }
     }
-
-    @SuppressLint("ScheduleExactAlarm")
-    fun setExactAlarm(context: Context, timeInMillis: Long) {
-        val alarmManager = context.getSystemService(AlarmManager::class.java)
-        val intent = Intent(context, AlarmReceiver::class.java).let { intent ->
-            PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        }
-
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeInMillis, intent)
-    }
-
-
-
 
     class AlertsViewModelFactory(private val alertsRepository: IAlertsRepository):
         ViewModelProvider.Factory{

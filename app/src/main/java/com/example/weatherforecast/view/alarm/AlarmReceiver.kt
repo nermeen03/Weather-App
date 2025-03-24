@@ -46,7 +46,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
         val handle = CoroutineExceptionHandler { _, exception ->
             Log.e("TAG", "onReceive: $exception")
-            message = "Couldn't fetch current weather, A problem occurred in the API."
+            message = context.getString(R.string.problem_in_the_api)
         }
 
         CoroutineScope(Dispatchers.Main + handle).launch {
@@ -65,20 +65,22 @@ class AlarmReceiver : BroadcastReceiver() {
                         val temp = result.list[0].main.temp
                         val feel = result.list[0].main.feels_like
                         val cloud = result.list[0].clouds.all
-                        "The temperature at $loc is $temp°C, but it feels like $feel°C. Cloud coverage: $cloud%"
+                        context.getString(R.string.the_temperature_at)+ loc +
+                                context.getString(R.string.`is`)+temp+
+                                context.getString(R.string.c)+ context.getString(R.string.but_it_feels_like)+
+                                feel+context.getString(R.string.c)+ context.getString(R.string.cloud_coverage)+
+                                cloud+context.getString(R.string.percent)
                     } else {
-                        "Couldn't fetch current weather, error in the API."
+                        context.getString(R.string.problem_in_the_api)
                     }
                 }
 
             } catch (e: Exception) {
-                Log.e("TAG", "Error in Coroutine: $e")
-                message = "An error occurred while processing the alarm."
+                message = context.getString(R.string.error_in_alarm)
             }
 
             if (message.isNotEmpty()) {
                 if (isAlarm) {
-                    Log.i("TAG", "onReceive: inside $message")
 
                     if (!Settings.canDrawOverlays(context)) {
                         val overlayIntent = Intent(
@@ -125,7 +127,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, "alarm_channel")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Current Weather!")
+            .setContentTitle(context.getString(R.string.current_weather))
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)

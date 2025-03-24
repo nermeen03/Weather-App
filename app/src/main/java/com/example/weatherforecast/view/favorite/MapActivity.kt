@@ -1,5 +1,6 @@
 package com.example.weatherforecast.view.favorite
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,12 +37,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.example.weatherforecast.R
+import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.local.favorite.FavLocationsDataBase
 import com.example.weatherforecast.data.local.favorite.FavLocationsLocalDataSource
 import com.example.weatherforecast.data.pojo.LocalNames
@@ -51,7 +54,6 @@ import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource
 import com.example.weatherforecast.data.remote.RetrofitHelper
 import com.example.weatherforecast.data.repo.FavLocationsRepository
-import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
@@ -61,11 +63,15 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 
 
-@Preview
 @Composable
-fun MapScreen() {
+fun MapScreen(navController:NavHostController) {
+    val previousEntry = navController.previousBackStackEntry
+    val previousRoute = previousEntry?.destination?.route
+
+    Log.i("TAG", "$previousRoute == favorite")
+
     val context = LocalContext.current
-    val apiKey = "2fc5f5f3f6a9b61df9391d8ae569f5e0"
+    val apiKey = stringResource(R.string.map_api)
 
     val viewModel: FavLocationsViewModel = viewModel(factory = FavLocationsViewModel.FavLocationsViewModelFactory(
         FavLocationsRepository.getRepository(
@@ -119,18 +125,20 @@ fun MapScreen() {
                         textFlow.emit(it)
                     }
                 },
-                placeholder = { Text("Search location...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                placeholder = { Text(stringResource(R.string.search_location)) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search)) },
                 trailingIcon = {
                     if (searchQuery.value.isNotEmpty()) {
                         IconButton(onClick = {
                             scope.launch { textFlow.emit("") }
                         }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear))
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().background(colorResource(R.color.white))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colorResource(R.color.white))
             )
 
             viewModel.filterCountries(searchQuery.value)
@@ -141,16 +149,27 @@ fun MapScreen() {
                     Text(
                         text = "${filtered[it].name}, ${filtered[it].country}",
                         modifier = Modifier
-                            .fillMaxWidth().background(colorResource(R.color.primaryLight))
+                            .fillMaxWidth()
+                            .background(colorResource(R.color.primaryLight))
                             .clickable {
-                                //searchQuery.value = "${filtered[it].name}, ${filtered[it].country}"
                                 scope.launch {
                                     val selected = filtered[it]
                                     textFlow.emit("${selected.name}, ${selected.country}")
                                     val latLng = LatLng(selected.coord.lat, selected.coord.lon)
-                                    viewModel.addMark(mapLibreMap,latLng)
-                                    val name = NameResponseItem(filtered[it].country,filtered[it].coord.lat,
-                                        LocalNames(be = "", cy = "", en = "", fr = "", he = "", ko = "", mk = "", ru = ""),filtered[it].coord.lon,filtered[it].name,"")
+                                    viewModel.addMark(mapLibreMap, latLng)
+                                    val name = NameResponseItem(
+                                        filtered[it].country, filtered[it].coord.lat,
+                                        LocalNames(
+                                            be = "",
+                                            cy = "",
+                                            en = "",
+                                            fr = "",
+                                            he = "",
+                                            ko = "",
+                                            mk = "",
+                                            ru = ""
+                                        ), filtered[it].coord.lon, filtered[it].name, ""
+                                    )
                                     locationSelected = name
                                 }
                             }
@@ -166,7 +185,7 @@ fun MapScreen() {
                     .padding(16.dp)
                     .align(Alignment.BottomCenter)
                 ,
-                contentAlignment = Alignment.BottomCenter // Use this inside Box
+                contentAlignment = Alignment.BottomCenter
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     SelectedLocationByName(locationSelected!!,viewModel)
@@ -216,11 +235,11 @@ fun MapScreen() {
             horizontalAlignment = Alignment.End
         ) {
             FloatingActionButton(onClick = { mapLibreMap?.animateCamera(CameraUpdateFactory.zoomIn()) }) {
-                Text("+")
+                Text(stringResource(R.string.plus))
             }
             Spacer(modifier = Modifier.height(8.dp))
             FloatingActionButton(onClick = { mapLibreMap?.animateCamera(CameraUpdateFactory.zoomOut()) }) {
-                Text("-")
+                Text(stringResource(R.string.minus))
             }
         }
     }
@@ -240,7 +259,8 @@ fun SelectedLocation(lat: Double, long: Double) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(color = colorResource(R.color.white), text = ("Selected: ($lat, $long)"))
+            Text(color = colorResource(R.color.white),
+                text = stringResource(R.string.location_format, lat.toString(), long.toString()))
         }
     }
 }
@@ -260,7 +280,8 @@ fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsVi
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Selected: (${location.name}, ${location.country})",
+                text = stringResource(R.string.location_format)+
+                        location.name+ stringResource(R.string.comma) +location.country+ stringResource(R.string.end_par),
                 color = colorResource(R.color.dark),
                 modifier = Modifier.padding(10.dp)
             )
@@ -280,21 +301,23 @@ fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsVi
 
                     when (viewModel.response.value) {
                         is Response.Success -> {
-                            Toast.makeText(context, "Added successfully", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context,
+                                context.getString(R.string.added_successfully), Toast.LENGTH_SHORT).show()
                         }
 
                         else -> {
-                            Toast.makeText(context, "Couldn't be added", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context,
+                                context.getString(R.string.couldn_t_be_added), Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
             ) {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
-                    contentDescription = "Add to Favorites"
+                    contentDescription = stringResource(R.string.add_to_favorites)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Save Location")
+                Text(stringResource(R.string.save_location))
             }
         }
     }

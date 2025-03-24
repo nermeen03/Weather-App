@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherforecast.R
@@ -42,7 +43,7 @@ class AlarmActivity : ComponentActivity() {
                     WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
                     WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
         )
-        val message = intent.getStringExtra("MESSAGE") ?: "Weather Alert: No Data Available"
+        val message = intent.getStringExtra("MESSAGE") ?: getString(R.string.weather_alert_no_data_available)
         val time = intent.getLongExtra("DURATION",30_000)
         Log.i("TAG", "onCreate: duration is $time")
         setContent {
@@ -120,7 +121,7 @@ class AlarmActivity : ComponentActivity() {
                     },
                     modifier = Modifier.padding(16.dp)
                 ) {
-                    Text("Dismiss")
+                    Text(stringResource(R.string.dismiss))
                 }
             }
         }

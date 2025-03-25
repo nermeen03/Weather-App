@@ -49,14 +49,6 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".view.home.HomePageActivity"
-            android:exported="true"
-            android:theme="@style/Theme.WeatherForecast">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
-        </activity>
-        <activity
             android:name=".view.alarm.AlarmActivity"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"

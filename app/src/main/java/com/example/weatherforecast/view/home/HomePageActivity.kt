@@ -1,28 +1,27 @@
 package com.example.weatherforecast.view.home
 
+import android.content.Context
 import android.os.Build
-import android.os.Bundle
-import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.weatherforecast.MyApplication
 import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.pojo.DailyDetails
 import com.example.weatherforecast.data.pojo.HourlyDetails
@@ -44,26 +43,16 @@ import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.DailyDataViewModel
 import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
 
-
-class HomePageActivity : ComponentActivity() {
-    @RequiresApi(Build.VERSION_CODES.O)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-           MainScreen()
-        }
-    }
-}
-
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MainScreen() {
-    var temp by remember { mutableDoubleStateOf(0.0) }
-    var feelLike by remember { mutableDoubleStateOf(0.0) }
-    var weather by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var state by remember { mutableStateOf("") }
+    Log.i("TAG", "MainScreen: home page")
+
+    var temp by rememberSaveable { mutableDoubleStateOf(0.0) }
+    var feelLike by rememberSaveable { mutableDoubleStateOf(0.0) }
+    var weather by rememberSaveable { mutableStateOf("") }
+    var location by rememberSaveable { mutableStateOf("") }
+    var state by rememberSaveable { mutableStateOf("") }
     var todayDetails by remember { mutableStateOf<DailyDetails?>(null) }
     var currentDetails by remember { mutableStateOf<WeatherDetails?>(null) }
     var hourlyList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
@@ -74,75 +63,108 @@ fun MainScreen() {
         viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
 
     isInternetAvailable(context)
-    val internet = internet.observeAsState()
+    val internet = internet.collectAsStateWithLifecycle()
 
-    val response by viewModel.response.collectAsState()
+    val response by viewModel.response.collectAsStateWithLifecycle()
 
-    if(internet.value == true) {
-        GetWeatherData(
-            updateCurrent = { newDetails ->
-                currentDetails = newDetails
-            },
-            updateList = { hourly, days ->
-                hourlyList = hourly
-                daysList = days
-            },viewModel
-        )
-        when (response) {
-            is Response.Loading -> {
+    GetWeatherData(
+        updateCurrent = { newDetails ->
+            currentDetails = newDetails
+            MyApplication.saveWeatherData(newDetails)
+        },
+        updateList = { hourly, days ->
+            hourlyList = hourly
+            daysList = days
+            MyApplication.saveWeatherLists(hourly, days)
+        },
+        viewModel
+    )
+
+    val savedWeather = MyApplication.getSavedWeatherData()
+    val savedHourlyList = MyApplication.getSavedHourlyData()
+    val savedDailyList = MyApplication.getSavedDailyData()
+
+    LaunchedEffect(response) {
+        if (response is Response.Success && currentDetails != null) {
+            Log.i("TAG", "MainScreen: Updating UI after success")
+            currentDetails?.let { details ->
+                temp = details.temp
+                feelLike = details.feelLike
+                weather = details.weather
+                location = "${details.place.name}, ${details.place.code}"
+                state = details.state
+                todayDetails = DailyDetails(details.pressure, details.humidity, details.speed, details.cloud)
+            }
+        } else if (!internet.value && savedWeather != null) {
+            Log.i("TAG", "MainScreen: Loading saved weather data")
+            savedWeather.let { details ->
+                temp = details.temp
+                feelLike = details.feelLike
+                weather = details.weather
+                location = "${details.place.name}, ${details.place.code}"
+                state = details.state
+                todayDetails = DailyDetails(details.pressure, details.humidity, details.speed, details.cloud)
+                hourlyList = savedHourlyList
+                daysList = savedDailyList
+            }
+        }
+    }
+
+
+    if (internet.value) {
+        Log.i("TAG", "MainScreen: Response status - $response")
+
+        when {
+            response is Response.Loading -> {
+                Log.i("TAG", "MainScreen: Loading screen")
                 WaitingGif()
             }
 
-            is Response.Success -> {
-                temp = currentDetails?.temp?:0.0
-                if (temp == 0.0){
-                    WaitingGif()
-                    ////
-                }
-                feelLike = currentDetails!!.feelLike
-                weather = currentDetails!!.weather
-                location = "${currentDetails!!.place.name}, ${currentDetails!!.place.code}"
-                state = currentDetails!!.state
-                todayDetails = DailyDetails(currentDetails!!.pressure,currentDetails!!.humidity,currentDetails!!.speed,currentDetails!!.cloud)
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    item {
-                        TopBar(viewModel,context)
-                    }
-                    item {
-                        TopWeatherSection(weather, feelLike, state)
-                    }
-
-                    item {
-                        WeatherLocationSection(temp, location)
-                    }
-
-                    item {
-                        HourlyWeatherSection(hourlyList)
-                    }
-
-                    item {
-                        TodayDetailsSection(todayDetails)
-                    }
-
-                    item {
-                        DailyWeatherSection(daysList)
-                    }
-                }
+            response is Response.Success && currentDetails != null -> {
+                Log.i("TAG", "MainScreen: Displaying weather data")
+                WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList)
             }
 
-            is Response.Failure -> {
-                val error = (response as Response.Failure).error
-                Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
+            response is Response.Failure && savedWeather!=null&& savedHourlyList.isNotEmpty()&&savedDailyList.isNotEmpty() -> {
+                WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList)
+            }
+
+            else -> {
+                Log.i("TAG", "MainScreen: Waiting for data to update")
+                WaitingGif() // errorGif
             }
         }
+    }else if(!internet.value&&savedWeather!=null&& savedHourlyList.isNotEmpty()&&savedDailyList.isNotEmpty()){
+        WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList)
     }else{
         NoInternetGif()
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun WeatherSections(
+    viewModel: DailyDataViewModel,
+    context: Context,
+    weather: String,
+    feelLike: Double,
+    state: String,
+    temp: Double,
+    location: String,
+    hourlyList: List<HourlyDetails>,
+    todayDetails: DailyDetails?,
+    daysList: List<HourlyDetails>){
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        item { TopBar(viewModel, context) }
+        item { TopWeatherSection(weather, feelLike, state) }
+        item { WeatherLocationSection(temp, location) }
+        item { HourlyWeatherSection(hourlyList) }
+        item { TodayDetailsSection(todayDetails) }
+        item { DailyWeatherSection(daysList) }
+    }
+}

@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.weatherforecast.R
@@ -37,7 +38,7 @@ fun BottomNavigationBar(navController: NavHostController) {
             val isSelected = currentDestination?.route == item.route
 
             NavigationBarItem(
-                label = { Text(text = item.label) },
+                label = { Text(stringResource(id = item.labelResId)) },
                 selected = isSelected,
                 onClick = {
                     navController.navigate(item.route) {
@@ -51,7 +52,7 @@ fun BottomNavigationBar(navController: NavHostController) {
                 icon = {
                     Icon(
                         imageVector = item.icon,
-                        contentDescription = item.label,
+                        contentDescription = stringResource(id = item.labelResId),
                         tint = if (isSelected) Color.Black else colorResource(R.color.light)
                     )
                 },

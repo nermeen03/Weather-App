@@ -15,19 +15,21 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.weatherforecast.MyApplication
+import com.example.weatherforecast.R
+import com.example.weatherforecast.view.navigation.ScreenRoute
 import java.util.Locale
 
 @Composable
 fun SettingsScreen(navController: NavHostController) {
     val context = LocalContext.current
     val application = context.applicationContext as MyApplication
-    val language by application.language.collectAsState()
-    val location by application.language.collectAsState()
+    val location by application.location.collectAsState()
     val temp by application.temp.collectAsState()
     val wind by application.wind.collectAsState()
 
@@ -37,13 +39,13 @@ fun SettingsScreen(navController: NavHostController) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(text = "Choose Location", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text(text = stringResource(R.string.choose_location), fontWeight = FontWeight.Bold, fontSize = 18.sp)
         Row {
             RadioButton(
                 selected = location == "GPS",
                 onClick = { application.setLocation("GPS") }
             )
-            Text("Use GPS", modifier = Modifier.padding(start = 8.dp))
+            Text(stringResource(R.string.use_gps), modifier = Modifier.padding(start = 8.dp))
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -51,41 +53,44 @@ fun SettingsScreen(navController: NavHostController) {
                 selected = location == "Map",
                 onClick = {
                     application.setLocation("Map")
-                    navController.navigate("map_screen")
+                    navController.navigate(ScreenRoute.MapScreenRoute.route) {
+                        launchSingleTop = true
+                    }
                 }
             )
-            Text("Select from Map", modifier = Modifier.padding(start = 8.dp))
+            Text(stringResource(R.string.select_from_map), modifier = Modifier.padding(start = 8.dp))
         }
 
-        Text(text = "Temperature Unit", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text(text = stringResource(R.string.temperature_unit), fontWeight = FontWeight.Bold, fontSize = 18.sp)
         Row {
-            listOf("Kelvin", "Celsius", "Fahrenheit").forEach { unit ->
+            listOf(stringResource(R.string.kelvin) to "K", stringResource(R.string.celsius) to "C",
+                stringResource(R.string.fahrenheit) to "F").forEach { (name,unit) ->
                 Row(modifier = Modifier.padding(end = 16.dp)) {
                     RadioButton(
                         selected = temp == unit,
                         onClick = { application.setTemp(unit) }
                     )
-                    Text(unit, modifier = Modifier.padding(start = 8.dp))
+                    Text(name, modifier = Modifier.padding(start = 8.dp))
                 }
             }
         }
 
-        Text(text = "Wind Speed Unit", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text(text = stringResource(R.string.wind_speed_unit), fontWeight = FontWeight.Bold, fontSize = 18.sp)
         Row {
-            listOf("m/s", "mph").forEach { unit ->
+            listOf(stringResource(R.string.m_s) to "mps", stringResource(R.string.mph) to "mph").forEach { (name,unit) ->
                 Row(modifier = Modifier.padding(end = 16.dp)) {
                     RadioButton(
                         selected = wind == unit,
                         onClick = { application.setWind(unit) }
                     )
-                    Text(unit, modifier = Modifier.padding(start = 8.dp))
+                    Text(name, modifier = Modifier.padding(start = 8.dp))
                 }
             }
         }
 
-        Text(text = "Language", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text(text = stringResource(R.string.language), fontWeight = FontWeight.Bold, fontSize = 18.sp)
         Row {
-            listOf("English" to "en", "Arabic" to "ar").forEach { (langName, langCode) ->
+            listOf(stringResource(R.string.english) to "en", stringResource(R.string.arabic) to "ar").forEach { (langName, langCode) ->
                 Row(modifier = Modifier.padding(end = 16.dp)) {
                     RadioButton(
                         selected = Locale.getDefault().language == langCode,

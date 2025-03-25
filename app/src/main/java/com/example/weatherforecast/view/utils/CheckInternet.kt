@@ -4,22 +4,21 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkRequest
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import kotlinx.coroutines.flow.MutableStateFlow
 
-val mutableInternet: MutableLiveData<Boolean> = MutableLiveData()
-val internet: LiveData<Boolean> = mutableInternet
+val mutableInternet: MutableStateFlow<Boolean> = MutableStateFlow(false)
+val internet: MutableStateFlow<Boolean> = mutableInternet
 
 fun isInternetAvailable(context: Context) {
     val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
     val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
-            mutableInternet.postValue(true)
+            mutableInternet.value = (true)
         }
 
         override fun onLost(network: Network) {
-            mutableInternet.postValue(false)
+            mutableInternet.value = (false)
         }
     }
 

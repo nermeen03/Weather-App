@@ -2,6 +2,7 @@ package com.example.weatherforecast.viewModel
 
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -83,10 +84,10 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
 
     @RequiresApi(Build.VERSION_CODES.O)
      fun fetchWeatherData(lat: Double, lon: Double) {
-            if (internet.value == true) {
+            if (internet.value) {
                 if (lat != -1.0 && lon != -1.0) {
                     val today = LocalDate.now().toString()
-
+                    Log.i("TAG", "fetchWeatherData: done checking")
                     getDailyData(lat, lon)
                     getCurrentWeather(lat, lon)
                     viewModelScope.launch(Dispatchers.IO + handle) {
@@ -164,7 +165,10 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
         val current = mutableCurrentResponse.value
 
         mutableResponse.value = when {
-            daily is Response.Success && current is Response.Success -> Response.Success
+            daily is Response.Success && current is Response.Success -> {
+                Log.i("TAG", "updateResponseState: both success")
+                Response.Success
+            }
             daily is Response.Failure -> daily
             current is Response.Failure -> current
             else -> Response.Loading

@@ -43,6 +43,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.weatherforecast.MyApplication
 import com.example.weatherforecast.R
 import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.local.favorite.FavLocationsDataBase
@@ -188,7 +189,7 @@ fun MapScreen(navController:NavHostController) {
                 contentAlignment = Alignment.BottomCenter
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    SelectedLocationByName(locationSelected!!,viewModel)
+                    SelectedLocationByName(locationSelected!!,viewModel,previousRoute)
                 }
             }
         }
@@ -210,7 +211,7 @@ fun MapScreen(navController:NavHostController) {
                     when (responseState) {
                         is Response.Success -> {
                             if (locationName != null) {
-                                SelectedLocationByName(locationName!!, viewModel)
+                                SelectedLocationByName(locationName!!, viewModel,previousRoute)
                             } else {
                                 SelectedLocation(location.latitude, location.longitude)
                             }
@@ -266,8 +267,10 @@ fun SelectedLocation(lat: Double, long: Double) {
 }
 
 @Composable
-fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsViewModel) {
+fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsViewModel,route:String?) {
     val context = LocalContext.current
+    val application = context.applicationContext as MyApplication
+    val loc by application.location.collectAsState()
 
     Box(
         modifier = Modifier
@@ -290,25 +293,40 @@ fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsVi
 
             Button(
                 onClick = {
-                    viewModel.insertLocation(
-                        Location(
-                            name = location.name,
-                            country = location.country,
-                            lon = location.lon,
-                            lat = location.lat
+                    if(route == "favorite") {
+                        viewModel.insertLocation(
+                            Location(
+                                name = location.name,
+                                country = location.country,
+                                lon = location.lon,
+                                lat = location.lat
+                            )
                         )
-                    )
 
-                    when (viewModel.response.value) {
-                        is Response.Success -> {
-                            Toast.makeText(context,
-                                context.getString(R.string.added_successfully), Toast.LENGTH_SHORT).show()
-                        }
+                        when (viewModel.response.value) {
+                            is Response.Success -> {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.added_successfully),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
 
-                        else -> {
-                            Toast.makeText(context,
-                                context.getString(R.string.couldn_t_be_added), Toast.LENGTH_SHORT).show()
+                            else -> {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.couldn_t_be_added),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         }
+                    }else{
+                        application.setCurrentLocation(Pair(location.lat,location.lon))
+                        Toast.makeText(
+                            context,
+                            "the location is ${location.name}, ${location.country}",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
             ) {

@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,13 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.pojo.DailyDetails
 import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.pojo.WeatherDetails
 import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.RetrofitHelper
 import com.example.weatherforecast.data.repo.DailyDataRepository
-import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.view.DailyWeatherSection
 import com.example.weatherforecast.view.GetWeatherDataByLoc
 import com.example.weatherforecast.view.HourlyWeatherSection
@@ -60,11 +59,11 @@ fun DetailsScreen(lat:Double,lon:Double) {
         viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
 
     isInternetAvailable(context)
-    val internet = internet.observeAsState()
+    val internet = internet.collectAsState()
 
     val response by viewModel.response.collectAsState()
 
-    if(internet.value == true) {
+    if(internet.value) {
         GetWeatherDataByLoc(
             updateCurrent = { newDetails ->
                 currentDetails = newDetails

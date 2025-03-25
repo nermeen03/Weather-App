@@ -45,7 +45,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,18 +55,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.weatherforecast.MyApplication
 import com.example.weatherforecast.R
 import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.local.alerts.AlertsDataBase
 import com.example.weatherforecast.data.local.alerts.AlertsLocalDataSource
 import com.example.weatherforecast.data.pojo.AlertsData
 import com.example.weatherforecast.data.repo.AlertsRepository
-import com.example.weatherforecast.view.utils.AppLocationHelper
 import com.example.weatherforecast.viewModel.AlertsViewModel
 import java.util.Calendar
 import java.util.Date
@@ -77,10 +77,11 @@ fun AlertsScreen() {
     val context = LocalContext.current
     var showBottomSheet by remember { mutableStateOf(false) }
 
-    val currentLocation =  AppLocationHelper.locationState.observeAsState()
+    val application = context.applicationContext as MyApplication
+    val currentLocation = application.currentLocation.collectAsStateWithLifecycle()
 
-    val lat = currentLocation.value?.first ?: -1.0
-    val long = currentLocation.value?.second ?: -1.0
+    val lat = currentLocation.value.first
+    val long = currentLocation.value.second
 
     val loc = ""
 
@@ -98,29 +99,29 @@ fun AlertsScreen() {
             FloatingActionButton(
                 onClick = { showBottomSheet = true }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Go to Map")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.go_to_map))
             }
         }
     ) { paddingValues ->
         Column(
             Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = if (isSystemInDarkTheme()) {
-                        listOf(
-                            colorResource(id = R.color.primaryDark),
-                            colorResource(id = R.color.secondaryDark)
-                        )
-                    } else {
-                        listOf(
-                            colorResource(id = R.color.primaryLight),
-                            colorResource(id = R.color.secondaryLight)
-                        )
-                    }
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = if (isSystemInDarkTheme()) {
+                            listOf(
+                                colorResource(id = R.color.primaryDark),
+                                colorResource(id = R.color.secondaryDark)
+                            )
+                        } else {
+                            listOf(
+                                colorResource(id = R.color.primaryLight),
+                                colorResource(id = R.color.secondaryLight)
+                            )
+                        }
+                    )
                 )
-            )
-            .padding(paddingValues)
+                .padding(paddingValues)
         ) {
             if (alertsList.isEmpty()) {
                 NoAlerts()
@@ -146,7 +147,7 @@ fun NoAlerts(){
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(color = Color.White, text = "You don't have alerts", fontSize = 20.sp)
+        Text(color = Color.White, text = stringResource(R.string.you_don_t_have_alerts), fontSize = 20.sp)
     }
 }
 
@@ -194,7 +195,7 @@ fun AlertRow(item: AlertsData, viewModel: AlertsViewModel) {
 
                     Icon(
                         imageVector = if (item.type) Icons.Default.Alarm else Icons.Default.Notifications,
-                        contentDescription = if (item.type) "Alarm" else "Notification"
+                        contentDescription = if (item.type) stringResource(R.string.alarm) else stringResource(R.string.notification)
                     )
                 }
 
@@ -212,10 +213,10 @@ fun AlertRow(item: AlertsData, viewModel: AlertsViewModel) {
                     viewModel.deleteAlert(item.date,item.time,item.location)
                     when (viewModel.response.value) {
                         is Response.Success -> {
-                            Toast.makeText(context, "Removed successfully", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.removed_successfully), Toast.LENGTH_SHORT).show()
                         }
                         else -> {
-                            Toast.makeText(context, "Couldn't be removed", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.couldn_t_be_removed), Toast.LENGTH_SHORT).show()
                         }
                     }
                 },
@@ -225,7 +226,7 @@ fun AlertRow(item: AlertsData, viewModel: AlertsViewModel) {
                 ),
                 modifier = Modifier.wrapContentWidth()
             ) {
-                Text("Remove")
+                Text(stringResource(R.string.remove))
             }
         }
     }
@@ -286,20 +287,20 @@ fun ChooseAlertDialog(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Select Date and Time", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.select_date_and_time), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(onClick = { datePickerDialog.show() }) {
-                    Text(if (selectedDate.isEmpty()) "Select Date" else "Date: $selectedDate")
+                    Text(if (selectedDate.isEmpty()) stringResource(R.string.select_date) else stringResource(R.string.date) +selectedDate)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(onClick = { timePickerDialog.show() }) {
-                    Text(if (selectedTime.isEmpty()) "Select Time" else "Time: $selectedTime")
+                    Text(if (selectedTime.isEmpty()) stringResource(R.string.select_time) else stringResource(R.string.time) +selectedTime)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Choose Alert Type", fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.choose_alert_type), fontSize = 18.sp, fontWeight = FontWeight.Medium)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -312,7 +313,7 @@ fun ChooseAlertDialog(
                             selected = selectedAlertType == "Alarm",
                             onClick = { selectedAlertType = "Alarm" }
                         )
-                        Text("Alarm")
+                        Text(stringResource(R.string.alarm))
                     }
 
                     Row(
@@ -323,7 +324,7 @@ fun ChooseAlertDialog(
                             selected = selectedAlertType == "Notification",
                             onClick = { selectedAlertType = "Notification" }
                         )
-                        Text("Notification")
+                        Text(stringResource(R.string.notification))
                     }
                 }
                 if (selectedAlertType == "Alarm") {
@@ -334,14 +335,14 @@ fun ChooseAlertDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         DropdownSelector(
-                            label = "Minutes",
+                            label = stringResource(R.string.minutes),
                             options = (0..10).toList(),
                             selectedOption = selectedMinutes,
                             onOptionSelected = { selectedMinutes = it }
                         )
 
                         DropdownSelector(
-                            label = "Seconds",
+                            label = stringResource(R.string.seconds),
                             options = (0..59).toList(),
                             selectedOption = selectedSeconds,
                             onOptionSelected = { selectedSeconds = it }
@@ -350,7 +351,7 @@ fun ChooseAlertDialog(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Text("Total Duration: $selectedMinutes min $selectedSeconds sec ($totalMillis ms)")
+                    Text(stringResource(R.string.total_duration) +selectedMinutes + stringResource(R.string.min) + selectedSeconds + stringResource(R.string.sec) )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -362,13 +363,15 @@ fun ChooseAlertDialog(
                             onConfirm(calendar.timeInMillis, selectedAlertType == "Alarm",alertData,totalMillis)
                             onDismiss()
                         } else {
-                            Toast.makeText(context, "Select a future time!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context,
+                                context.getString(R.string.select_a_future_time), Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Toast.makeText(context, "Select date and time first!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context,
+                            context.getString(R.string.select_date_and_time_first), Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text(text = "Set Alert")
+                    Text(text = stringResource(R.string.set_alert))
                 }
             }
         }
@@ -406,9 +409,11 @@ fun setExactAlarm(context: Context, timeInMillis: Long, isAlarm: Boolean,viewMod
             pendingIntent
         )
         viewModel.insertAlert(data)
-        Toast.makeText(context, "Alarm set successfully!", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context,
+            context.getString(R.string.alarm_set_successfully), Toast.LENGTH_SHORT).show()
     } else {
-        Toast.makeText(context, "Cannot set alarm in the past!", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context,
+            context.getString(R.string.cannot_set_alarm_in_the_past), Toast.LENGTH_SHORT).show()
     }
 }
 @Composable

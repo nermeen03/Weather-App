@@ -9,8 +9,16 @@ import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.*
+import com.example.weatherforecast.MyApplication
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import kotlinx.coroutines.flow.first
 
 object AppLocationHelper {
 
@@ -35,10 +43,18 @@ object AppLocationHelper {
                 locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
     }
 
-    @SuppressLint("MissingPermission")
-    fun getFreshLocation(context: Context) {
-        fusedClient = LocationServices.getFusedLocationProviderClient(context)
 
+    @SuppressLint("MissingPermission")
+    suspend fun getFreshLocation(context: Context) {
+        val application = context.applicationContext as MyApplication
+        val locationType = application.location.first()
+
+        if (locationType != "GPS") {
+            Log.d("TAG", "GPS is not selected, location update ignored.")
+            return
+        }
+
+        fusedClient = LocationServices.getFusedLocationProviderClient(context)
         val locationRequest = LocationRequest.Builder(500).apply {
             setPriority(Priority.PRIORITY_HIGH_ACCURACY)
         }.build()
@@ -46,7 +62,14 @@ object AppLocationHelper {
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 locationResult.lastLocation?.let {
-                    locationState.value = Pair(it.latitude, it.longitude)
+                    val newLocation = Pair(it.latitude, it.longitude)
+                    if(locationState.value != newLocation){
+                        application.setCurrentLocation(newLocation)
+                        locationState.value = newLocation
+                        if(locationType=="Map"){
+                            fusedClient.removeLocationUpdates(locationCallback)
+                        }
+                    }
                 }
             }
         }
@@ -56,4 +79,5 @@ object AppLocationHelper {
             Looper.getMainLooper()
         )
     }
+
 }

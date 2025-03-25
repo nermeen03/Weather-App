@@ -14,8 +14,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.weatherforecast.view.bottomNavBar.WeatherNavigationBar
 import com.example.weatherforecast.view.utils.AppLocationHelper
+import com.example.weatherforecast.view.utils.AppLocationHelper.getFreshLocation
+import kotlinx.coroutines.launch
 import org.maplibre.android.MapLibre
 import org.maplibre.android.WellKnownTileServer
 
@@ -27,6 +30,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         MapLibre.getInstance(this, "2fc5f5f3f6a9b61df9391d8ae569f5e0", WellKnownTileServer.MapTiler)
+        val app = this.application as MyApplication
+        app.loadLanguagePreference(this)
 
         enableEdgeToEdge()
         setContent {
@@ -36,18 +41,23 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        if (AppLocationHelper.checkPermissions(this)) {
-            if (AppLocationHelper.isLocationEnabled(this)) {
-                AppLocationHelper.getFreshLocation(this)
+        val app = this.application as MyApplication
+        if(app.location.value == "GPS"){
+            if (AppLocationHelper.checkPermissions(this)) {
+                if (AppLocationHelper.isLocationEnabled(this)) {
+                    lifecycleScope.launch {
+                        getFreshLocation(this@MainActivity)
+                    }
+                } else {
+                    AppLocationHelper.enableLocationServices(this)
+                }
             } else {
-                AppLocationHelper.enableLocationServices(this)
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION),
+                    My_LOCATION_PERMISSION_ID
+                )
             }
-        } else {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION),
-                My_LOCATION_PERMISSION_ID
-            )
         }
         if (!Settings.canDrawOverlays(this)) {
             AlertDialog.Builder(this)
@@ -77,7 +87,9 @@ class MainActivity : ComponentActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults, deviceId)
         if (requestCode == My_LOCATION_PERMISSION_ID) {
             if (grantResults.isNotEmpty() && grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }) {
-                AppLocationHelper.getFreshLocation(this)
+                lifecycleScope.launch {
+                    getFreshLocation(this@MainActivity)
+                }
             }
         }
     }

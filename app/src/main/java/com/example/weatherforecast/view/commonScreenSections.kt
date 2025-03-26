@@ -399,6 +399,7 @@ fun GetWeatherData(
     val application = context.applicationContext as MyApplication
     val currentLocation = application.currentLocation.collectAsStateWithLifecycle()
 
+    Log.i("TAG", "GetWeatherData: ${application.reStarted}")
     isInternetAvailable(context)
     val internet = internet.collectAsStateWithLifecycle()
 

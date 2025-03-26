@@ -42,6 +42,7 @@ import com.example.weatherforecast.view.utils.internet
 import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.DailyDataViewModel
 import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
+import kotlinx.coroutines.delay
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -135,8 +136,32 @@ fun MainScreen() {
             }
         }
     }else if(!internet.value&&savedWeather!=null&& savedHourlyList.isNotEmpty()&&savedDailyList.isNotEmpty()){
-        WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList)
-    }else{
+            Log.i("TAG", "MainScreen: Loading saved weather data")
+
+            var isDataLoaded by remember { mutableStateOf(false) }
+
+            LaunchedEffect(Unit) {
+                delay(500)
+                isDataLoaded = true
+            }
+
+            if (!isDataLoaded) {
+                WaitingGif()
+            } else {
+                WeatherSections(
+                    viewModel,
+                    context,
+                    weather,
+                    feelLike,
+                    state,
+                    temp,
+                    location,
+                    hourlyList,
+                    todayDetails,
+                    daysList
+                )
+            }
+        }else{
         NoInternetGif()
     }
 }

@@ -270,7 +270,6 @@ fun SelectedLocation(lat: Double, long: Double) {
 fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsViewModel,route:String?) {
     val context = LocalContext.current
     val application = context.applicationContext as MyApplication
-    val loc by application.location.collectAsState()
 
     Box(
         modifier = Modifier

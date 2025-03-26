@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
+import android.util.Log
 import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.pojo.WeatherDetails
 import com.google.gson.Gson
@@ -27,11 +28,27 @@ class MyApplication : Application() {
     private val _mutableWind = MutableStateFlow("m/s")
     val wind: StateFlow<String> = _mutableWind.asStateFlow()
 
+    var reStarted = false
+
     override fun onCreate() {
         super.onCreate()
-        setLanguage(this,"en")
         sharedPreferences = applicationContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+
+        val storedLang = sharedPreferences.getString("LANGUAGE", "default")
+        Log.i("LANG_CHECK", "Stored Language: $storedLang")
+
+        if (!sharedPreferences.contains("LANGUAGE")) {
+            setLanguage(this, "en")
+            saveLanguagePreference(this, "en")
+            Log.i("LANG_CHECK", "No language found, setting default to English")
+        } else {
+            val langCode = storedLang ?: "en"
+            setLanguage(this, langCode)
+            Log.i("LANG_CHECK", "Using stored language: $langCode")
+        }
     }
+
+
 
     fun setLanguage(context: Context, langCode: String) {
         val locale = Locale(langCode)
@@ -41,12 +58,17 @@ class MyApplication : Application() {
         config.setLocale(locale)
         config.setLayoutDirection(locale)
 
-        context.createConfigurationContext(config)
-
+        context.resources.updateConfiguration(config, context.resources.displayMetrics)
         saveLanguagePreference(context, langCode)
 
     }
 
+
+
+
+    fun setRestarted(){
+        reStarted = true
+    }
 
     fun setLocation(lang: String) {
         _mutableLocation.value = lang
@@ -223,6 +245,7 @@ class MyApplication : Application() {
 
         context.resources.updateConfiguration(config, context.resources.displayMetrics)
     }
+
 
     companion object {
         private lateinit var sharedPreferences: SharedPreferences

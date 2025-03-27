@@ -7,4 +7,5 @@ import kotlinx.coroutines.flow.Flow
 interface IDailyDataRepository {
     suspend fun getDailyData(lat:Double,lon:Double): Flow<ForecastDataResponse?>
     fun getCurrentWeather(lat: Double, lon: Double): Flow<CurrentWeatherResponse?>
+    fun getArabicData(lat: Double, lon: Double): Flow<CurrentWeatherResponse?>
 }

@@ -1,4 +1,4 @@
-package com.example.weatherforecast.view.alarm
+package com.example.weatherforecast.view.alert
 
 import android.annotation.SuppressLint
 import android.app.AlarmManager
@@ -42,12 +42,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,7 +72,10 @@ import com.example.weatherforecast.data.local.alerts.AlertsDataBase
 import com.example.weatherforecast.data.local.alerts.AlertsLocalDataSource
 import com.example.weatherforecast.data.pojo.AlertsData
 import com.example.weatherforecast.data.repo.AlertsRepository
+import com.example.weatherforecast.view.utils.internet
+import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.AlertsViewModel
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Date
 
@@ -93,11 +100,31 @@ fun AlertsScreen() {
     viewModel.getAllAlerts()
     val alertsList by viewModel.alertsList.collectAsStateWithLifecycle()
 
+    val snackBarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackBarHostState) },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showBottomSheet = true }
+                onClick = {
+                    isInternetAvailable(context)
+                    if (internet.value) {
+                        showBottomSheet = true
+                    } else {
+                        coroutineScope.launch {
+                            val result = snackBarHostState.showSnackbar(
+                                message = "No internet connection!",
+                                actionLabel = "Retry"
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                if (internet.value) {
+                                    showBottomSheet = true
+                                }
+                            }
+                        }
+                    }
+                }
             ) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.go_to_map))
             }

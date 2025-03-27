@@ -93,6 +93,8 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.translate)
+    implementation (libs.mlkit.translate.v1701)
+
 
 
     implementation(libs.kotlinx.coroutines.android)

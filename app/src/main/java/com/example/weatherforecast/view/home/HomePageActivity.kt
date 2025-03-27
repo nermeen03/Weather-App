@@ -47,7 +47,9 @@ import kotlinx.coroutines.delay
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MainScreen() {
+
     Log.i("TAG", "MainScreen: home page")
+
 
     var temp by rememberSaveable { mutableDoubleStateOf(0.0) }
     var feelLike by rememberSaveable { mutableDoubleStateOf(0.0) }
@@ -58,10 +60,14 @@ fun MainScreen() {
     var currentDetails by remember { mutableStateOf<WeatherDetails?>(null) }
     var hourlyList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
     var daysList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
+    var langData by remember { mutableStateOf<List<String>?>(emptyList()) }
 
     val context = LocalContext.current
     val viewModel: DailyDataViewModel =
         viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
+
+    val app = context.applicationContext as MyApplication
+    Log.i("TAG", "MainScreen: ${app.restarted}")
 
     isInternetAvailable(context)
     val internet = internet.collectAsStateWithLifecycle()
@@ -78,12 +84,17 @@ fun MainScreen() {
             daysList = days
             MyApplication.saveWeatherLists(hourly, days)
         },
+        arabicData = { dataArray->
+            langData = dataArray
+            MyApplication.saveArabicData(dataArray)
+        },
         viewModel
     )
 
     val savedWeather = MyApplication.getSavedWeatherData()
     val savedHourlyList = MyApplication.getSavedHourlyData()
     val savedDailyList = MyApplication.getSavedDailyData()
+    val savedArabicList = MyApplication.getSavedArabicData()
 
     LaunchedEffect(response) {
         if (response is Response.Success && currentDetails != null) {
@@ -107,12 +118,20 @@ fun MainScreen() {
                 todayDetails = DailyDetails(details.pressure, details.humidity, details.speed, details.cloud)
                 hourlyList = savedHourlyList
                 daysList = savedDailyList
+                langData = savedArabicList
             }
         }
     }
 
+    Log.i("DEBUG", "Internet: ${internet.value}")
+    Log.i("DEBUG", "App Restarted: ${app.restarted}")
+    Log.i("DEBUG", "Saved Weather Exists: ${savedWeather != null}")
+    Log.i("DEBUG", "Saved Hourly List Count: ${savedHourlyList.size}")
+    Log.i("DEBUG", "Saved Daily List Count: ${savedDailyList.size}")
+    Log.i("DEBUG", "Saved Daily List Count: ${MyApplication.getSavedArabicData()?.size?:-1}")
 
-    if (internet.value) {
+
+    if (internet.value && !app.restarted) {
         Log.i("TAG", "MainScreen: Response status - $response")
 
         when {
@@ -123,11 +142,11 @@ fun MainScreen() {
 
             response is Response.Success && currentDetails != null -> {
                 Log.i("TAG", "MainScreen: Displaying weather data")
-                WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList)
+                WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,langData)
             }
 
             response is Response.Failure && savedWeather!=null&& savedHourlyList.isNotEmpty()&&savedDailyList.isNotEmpty() -> {
-                WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList)
+                WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,langData)
             }
 
             else -> {
@@ -135,7 +154,7 @@ fun MainScreen() {
                 WaitingGif() // errorGif
             }
         }
-    }else if(!internet.value&&savedWeather!=null&& savedHourlyList.isNotEmpty()&&savedDailyList.isNotEmpty()){
+    }else if((!internet.value || app.restarted)&&savedWeather!=null&&savedDailyList.isNotEmpty()){
             Log.i("TAG", "MainScreen: Loading saved weather data")
 
             var isDataLoaded by remember { mutableStateOf(false) }
@@ -158,7 +177,8 @@ fun MainScreen() {
                     location,
                     hourlyList,
                     todayDetails,
-                    daysList
+                    daysList,
+                    langData
                 )
             }
         }else{
@@ -178,7 +198,8 @@ fun WeatherSections(
     location: String,
     hourlyList: List<HourlyDetails>,
     todayDetails: DailyDetails?,
-    daysList: List<HourlyDetails>){
+    daysList: List<HourlyDetails>,
+    langData:List<String>?){
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -186,8 +207,8 @@ fun WeatherSections(
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         item { TopBar(viewModel, context) }
-        item { TopWeatherSection(weather, feelLike, state) }
-        item { WeatherLocationSection(temp, location) }
+        item { TopWeatherSection(weather, feelLike, state,langData?.get(0)?:weather) }
+        item { WeatherLocationSection(temp, location,langData?.get(1)?:location) }
         item { HourlyWeatherSection(hourlyList) }
         item { TodayDetailsSection(todayDetails) }
         item { DailyWeatherSection(daysList) }

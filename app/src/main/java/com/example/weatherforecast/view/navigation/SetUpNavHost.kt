@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.weatherforecast.view.alarm.AlertsScreen
+import com.example.weatherforecast.view.alert.AlertsScreen
 import com.example.weatherforecast.view.favorite.DetailsScreen
 import com.example.weatherforecast.view.favorite.FavScreen
 import com.example.weatherforecast.view.favorite.MapScreen

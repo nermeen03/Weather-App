@@ -145,16 +145,18 @@ fun TopBar(viewModel: DailyDataViewModel, context: Context) {
 @SuppressLint("StateFlowValueCalledInComposition")
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun TopWeatherSection(weather: String, feelLike: Double,state: String) {
+fun TopWeatherSection(weather: String, feelLike: Double,state: String,weatherArabic: String) {
     val context = LocalContext.current
     val application = context.applicationContext as MyApplication
+    val weatherValue = if(application.getCurrentLanguage() == "en") weather else weatherArabic
 
+    Log.i("TAG", "TopWeatherSection: weather is $weatherArabic")
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
-            Text(application.convertWeatherToArabic(weather), fontSize = 24.sp, color = Color.White)
+            Text(weatherValue, fontSize = 24.sp, color = Color.White)
             Text(stringResource(R.string.feels_like)+ " " + application.convertTemperature(feelLike) + " " + application.translateChar(), color = Color.White)
         }
         Column {
@@ -174,9 +176,12 @@ fun TopWeatherSection(weather: String, feelLike: Double,state: String) {
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
-fun WeatherLocationSection(temp: Double,location:String) {
+fun WeatherLocationSection(temp: Double,location:String,locationArabic: String) {
     val context = LocalContext.current
     val application = context.applicationContext as MyApplication
+    val locValue = if(application.getCurrentLanguage() == "en") location else locationArabic
+
+    Log.i("TAG", "TopWeatherSection: loc is ${application.getCurrentLanguage()}")
 
     Box(
         modifier = Modifier
@@ -195,7 +200,7 @@ fun WeatherLocationSection(temp: Double,location:String) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = location,
+                text = locValue,
                 color = Color.White,
                 fontSize = 16.sp
             )
@@ -389,35 +394,38 @@ fun GetWeatherData(
     updateList: (
         List<HourlyDetails>,
         List<HourlyDetails>) -> Unit,
-    viewModel: DailyDataViewModel
+    arabicData:(List<String>)->Unit,
+    viewModel: DailyDataViewModel,
+
 ) {
     val context = LocalContext.current
     val currentWeather = viewModel.currentWeatherDetails.collectAsStateWithLifecycle()
     val filteredWeather = viewModel.filteredWeatherData.collectAsStateWithLifecycle()
+    val langData = viewModel.currentArabicDetails.collectAsStateWithLifecycle()
 
     val message = viewModel.response.collectAsStateWithLifecycle()
     val application = context.applicationContext as MyApplication
     val currentLocation = application.currentLocation.collectAsStateWithLifecycle()
 
-    Log.i("TAG", "GetWeatherData: ${application.reStarted}")
     isInternetAvailable(context)
     val internet = internet.collectAsStateWithLifecycle()
 
+    if(!application.restarted) {
+        LaunchedEffect(currentLocation.value, internet.value) {
+            val lat = currentLocation.value.first
+            val long = currentLocation.value.second
 
-    LaunchedEffect(currentLocation.value, internet.value) {
-        val lat = currentLocation.value.first
-        val long = currentLocation.value.second
-
-        if (internet.value && lat != -1.0 && long != -1.0) {
-            Log.i("TAG", "MainScreen: Fetching weather data for $lat, $long")
-            viewModel.fetchWeatherData(lat, long)
+            if (internet.value && lat != -1.0 && long != -1.0) {
+                Log.i("TAG", "MainScreen: Fetching weather data for $lat, $long")
+                viewModel.fetchWeatherData(lat, long)
+            }
         }
     }
 
-    if(message.value == Response.Success && currentWeather.value != null && filteredWeather.value?.second != emptyList<HourlyDetails>() ){
+    if(message.value == Response.Success && currentWeather.value != null && filteredWeather.value?.second != emptyList<HourlyDetails>() && langData.value.isNotEmpty()){
         updateCurrent(currentWeather.value!!)
         updateList(filteredWeather.value?.first?:emptyList(),filteredWeather.value?.second?: emptyList())
-
+        arabicData(langData.value)
     }
 
     DisposableEffect(Unit) {
@@ -435,7 +443,9 @@ fun GetWeatherDataByLoc(
     updateList: (
         List<HourlyDetails>,
         List<HourlyDetails>) -> Unit,
-    lat:Double,long:Double,viewModel: DailyDataViewModel
+    lat:Double,long:Double,
+    arabicData:(List<String>)->Unit
+    ,viewModel: DailyDataViewModel
 ) {
     val currentWeather = viewModel.currentWeatherDetails.collectAsStateWithLifecycle()
     val filteredWeather = viewModel.filteredWeatherData.collectAsStateWithLifecycle()

@@ -24,4 +24,13 @@ class DailyRemoteDataSource(private var apiService: ApiService = RetrofitHelper.
             throw Exception(response.message())
         }
     }
+
+    override fun getArabicData(lat: Double, lon: Double) = flow{
+        val result = apiService.getArabicData(lat, lon)
+        if (result.isSuccessful){
+            emit(result.body()!!)
+        }else{
+            throw Exception(result.message())
+        }
+    }
 }

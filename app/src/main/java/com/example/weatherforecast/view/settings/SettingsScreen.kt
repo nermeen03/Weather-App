@@ -1,6 +1,7 @@
 package com.example.weatherforecast.view.settings
 
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -168,8 +169,8 @@ fun SettingsScreen(navController: NavHostController) {
                         selected = Locale.getDefault().language == langCode,
                         onClick = {
                             application.setLanguage(context, langCode)
-                            application.setRestarted()
-
+                            Log.i("TAG", "SettingsScreen: $langCode")
+                            application.restarted = true
                             val intent = Intent(context, MainActivity::class.java)
                             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                             context.startActivity(intent)

@@ -28,4 +28,7 @@ class DailyDataRepository(private val dailyRemoteDataSource: IDailyRemoteDataSou
     override fun getCurrentWeather(lat:Double, lon:Double): Flow<CurrentWeatherResponse?> {
         return dailyRemoteDataSource.getCurrentWeather(lat, lon)
     }
+    override fun getArabicData(lat:Double, lon:Double): Flow<CurrentWeatherResponse?> {
+        return dailyRemoteDataSource.getArabicData(lat, lon)
+    }
 }

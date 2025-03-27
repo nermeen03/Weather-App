@@ -1,6 +1,7 @@
 package com.example.weatherforecast.data.repo
 
 import com.example.weatherforecast.data.local.favorite.FavLocationsLocalDataSource
+import com.example.weatherforecast.data.pojo.CurrentWeatherResponse
 import com.example.weatherforecast.data.pojo.Location
 import com.example.weatherforecast.data.pojo.NameResponse
 import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource
@@ -34,8 +35,5 @@ class FavLocationsRepository(private val favLocationsLocalDataSource: FavLocatio
     }
     override suspend fun getLocationName(lat: Double, lon: Double): Flow<NameResponse>{
         return favLocationsRemoteDataSource.getLocation(lat, lon)
-    }
-    override suspend fun getMap(lat: Double, lon: Double){
-        return favLocationsRemoteDataSource.getMap(lat, lon)
     }
 }

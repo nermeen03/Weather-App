@@ -26,10 +26,15 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -52,7 +57,11 @@ import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource
 import com.example.weatherforecast.data.remote.RetrofitHelper
 import com.example.weatherforecast.data.repo.FavLocationsRepository
 import com.example.weatherforecast.view.navigation.ScreenRoute
+import com.example.weatherforecast.view.utils.internet
+import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -73,13 +82,36 @@ fun FavScreen(navController: NavHostController,
     }
 
     val favList by viewModel.favLocations.collectAsStateWithLifecycle()
+    val snackBarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackBarHostState) } ,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    navController.navigate(ScreenRoute.MapScreenRoute.route) {
-                        launchSingleTop = true
+                    isInternetAvailable(context)
+                    if (internet.value) {
+                        navController.navigate(ScreenRoute.MapScreenRoute.route) {
+                            launchSingleTop = true
+                        }
+                    }
+                    else{
+                        coroutineScope.launch {
+                            val result = snackBarHostState.showSnackbar(
+                                message = "No internet connection!",
+                                actionLabel = "Retry"
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                isInternetAvailable(context)
+                                if (internet.value) {
+                                    navController.navigate(ScreenRoute.MapScreenRoute.route) {
+                                        launchSingleTop = true
+                                    }
+                                }
+                            }
+
+                        }
                     }
                 }
             ) {
@@ -109,7 +141,13 @@ fun FavScreen(navController: NavHostController,
             if (favList.isEmpty()) {
                 NoFav()
             } else {
-                FavList(favList, viewModel,navToDetails)
+                FavList(
+                    list = favList,
+                    viewModel = viewModel,
+                    navToDetails = navToDetails,
+                    snackBarHostState = snackBarHostState,
+                    coroutineScope = coroutineScope
+                )
             }
         }
     }
@@ -129,14 +167,21 @@ fun NoFav() {
 fun FavList(
     list: List<Location>,
     viewModel: FavLocationsViewModel,
-    navToDetails: (lat: Double, lon: Double) -> Unit
+    navToDetails: (lat: Double, lon: Double) -> Unit,
+    snackBarHostState: SnackbarHostState,
+    coroutineScope: CoroutineScope
 ) {
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(list.size) { index ->
-            FavRow(list[index], viewModel) {
+            FavRow(
+                item = list[index],
+                viewModel = viewModel,
+                snackBarHostState = snackBarHostState,
+                coroutineScope = coroutineScope
+            ) {
                 val lat = list[index].lat
                 val lon = list[index].lon
                 navToDetails(lat, lon)
@@ -146,8 +191,15 @@ fun FavList(
 }
 
 
+
 @Composable
-fun FavRow(item: Location, viewModel: FavLocationsViewModel,function: () -> Unit) {
+fun FavRow(
+    item: Location,
+    viewModel: FavLocationsViewModel,
+    snackBarHostState: SnackbarHostState,
+    coroutineScope: CoroutineScope,
+    function: () -> Unit
+) {
     val context = LocalContext.current
 
     Card(
@@ -163,29 +215,40 @@ fun FavRow(item: Location, viewModel: FavLocationsViewModel,function: () -> Unit
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "${item.name}, ${item.country}",
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = stringResource(R.string.lat) + item.lat + stringResource(R.string.lon) +item.lon,
+                    text = stringResource(R.string.lat) + item.lat + stringResource(R.string.lon) + item.lon,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
 
             Button(
                 onClick = {
+                    val loc = item
                     viewModel.deleteLocation(item.lat, item.lon)
                     when (viewModel.response.value) {
                         is Response.Success -> {
-                            Toast.makeText(context, context.getString(R.string.removed_successfully), Toast.LENGTH_SHORT).show()
+                            coroutineScope.launch {
+                                val result = snackBarHostState.showSnackbar(
+                                    message = "Deleted Successfully!",
+                                    actionLabel = "Undo"
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    viewModel.insertLocation(loc)
+                                }
+                            }
                         }
                         else -> {
-                            Toast.makeText(context, context.getString(R.string.couldn_t_be_removed), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.couldn_t_be_removed),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 },

@@ -31,9 +31,11 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
     private val mutableDailyData = MutableStateFlow<ForecastDataResponse?>(null)
 
     private val mutableCurrentWeather  = MutableStateFlow<CurrentWeatherResponse?>(null)
+    private val mutableArabicData  = MutableStateFlow<CurrentWeatherResponse?>(null)
 
     private val mutableDailyResponse = MutableStateFlow(Response.Loading as Response<*>)
     private val mutableCurrentResponse = MutableStateFlow(Response.Loading as Response<*>)
+    private val mutableArabicResponse = MutableStateFlow(Response.Loading as Response<*>)
 
     private val mutableResponse = MutableStateFlow(Response.Loading as Response<*>)
     val response = mutableResponse.asStateFlow()
@@ -43,6 +45,9 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
 
     private val _currentWeatherDetails = MutableStateFlow<WeatherDetails?>(null)
     val currentWeatherDetails = _currentWeatherDetails.asStateFlow()
+
+    private val _currentArabicDetails = MutableStateFlow<List<String>>(emptyList())
+    val currentArabicDetails = _currentArabicDetails.asStateFlow()
 
 
     private val handle = CoroutineExceptionHandler { _, exception ->
@@ -75,6 +80,15 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
                     .collect {
                         mutableCurrentWeather.value = it
                         mutableCurrentResponse.value = Response.Success
+                        updateResponseState()
+                    }
+                dataRepository.getArabicData(lat, lon).distinctUntilChanged().retry(3)
+                    .catch {
+                            e -> mutableArabicResponse.value = Response.Failure(e)
+                        updateResponseState()}
+                    .collect {
+                        mutableArabicData.value = it
+                        mutableArabicResponse.value = Response.Success
                         updateResponseState()
                     }
             }
@@ -156,6 +170,15 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
                             }
                         }
                     }
+                    viewModelScope.launch(Dispatchers.IO + handle) {
+                        mutableArabicData.collect{ arabicData ->
+                            arabicData?.let {
+                                val name = arabicData.name
+                                val desc = arabicData.weather[0].description
+                                _currentArabicDetails.value = listOf(name,desc)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -163,14 +186,16 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
     private fun updateResponseState() {
         val daily = mutableDailyResponse.value
         val current = mutableCurrentResponse.value
+        val arabic = mutableArabicResponse.value
 
         mutableResponse.value = when {
-            daily is Response.Success && current is Response.Success -> {
+            daily is Response.Success && current is Response.Success && arabic is Response.Success-> {
                 Log.i("TAG", "updateResponseState: both success")
                 Response.Success
             }
             daily is Response.Failure -> daily
             current is Response.Failure -> current
+            arabic is Response.Failure -> arabic
             else -> Response.Loading
         }
     }

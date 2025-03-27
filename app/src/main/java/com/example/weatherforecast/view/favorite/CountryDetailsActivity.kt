@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.weatherforecast.MyApplication
 import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.pojo.DailyDetails
 import com.example.weatherforecast.data.pojo.HourlyDetails
@@ -53,6 +54,7 @@ fun DetailsScreen(lat:Double,lon:Double) {
     var currentDetails by remember { mutableStateOf<WeatherDetails?>(null) }
     var hourlyList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
     var daysList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
+    var langData by remember { mutableStateOf<List<String>?>(emptyList()) }
 
     val context = LocalContext.current
     val viewModel: DailyDataViewModel =
@@ -72,7 +74,12 @@ fun DetailsScreen(lat:Double,lon:Double) {
                 hourlyList = hourly
                 daysList = days
             },
-            lat,lon,viewModel
+            lat,lon,
+            arabicData = { dataArray->
+                langData = dataArray
+                MyApplication.saveArabicData(dataArray)
+            },
+            viewModel
         )
         when (response) {
             is Response.Loading -> {
@@ -94,11 +101,11 @@ fun DetailsScreen(lat:Double,lon:Double) {
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     item {
-                        TopWeatherSection(weather, feelLike, state)
+                        TopWeatherSection(weather, feelLike, state,langData?.get(1)?:weather)
                     }
 
                     item {
-                        WeatherLocationSection(temp, location)
+                        WeatherLocationSection(temp, location,langData?.get(0)?:location)
                     }
 
                     item {

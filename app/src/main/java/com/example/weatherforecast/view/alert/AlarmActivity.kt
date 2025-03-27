@@ -1,4 +1,4 @@
-package com.example.weatherforecast.view.alarm
+package com.example.weatherforecast.view.alert
 
 import android.content.Context
 import android.media.MediaPlayer

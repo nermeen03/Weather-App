@@ -5,6 +5,7 @@ coilCompose = "2.5.0"
 compose = "1.0.0-beta01"
 converterGson = "2.9.0"
 coroutinesVersion = "1.7.3"
+googleTranslate = "17.0.1"
 gson = "2.10.1"
 javaTranslate = "1.0.8"
 jetbrainsKotlinxCoroutinesTest = "1.7.3"
@@ -69,6 +70,7 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 kotlinx-coroutines-test-v100 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTestVersion" }
 kotlinx-coroutines-test-v173 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "jetbrainsKotlinxCoroutinesTest" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+mlkit-translate-v1701 = { module = "com.google.mlkit:translate", version.ref = "googleTranslate" }
 mock-agent = { module = "io.mock:mock-agent", version.ref = "mockAgent" }
 mock-android = { module = "io.mock:mock-android", version.ref = "mockAndroid" }
 mockk-agent = { module = "io.mockk:mockk-agent", version.ref = "mockkAgent" }

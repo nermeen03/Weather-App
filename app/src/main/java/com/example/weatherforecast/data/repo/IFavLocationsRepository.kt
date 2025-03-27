@@ -10,5 +10,4 @@ interface IFavLocationsRepository {
     suspend fun insertFav(location: Location): Long
     suspend fun deleteFav(lat: Double, lon: Double): Int
     suspend fun getLocationName(lat: Double, lon: Double): Flow<NameResponse>
-    suspend fun getMap(lat: Double, lon: Double)
 }

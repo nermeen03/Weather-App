@@ -12,7 +12,5 @@ class FavLocationsRemoteDataSource(private val apiService: ApiService) : IFavLoc
             throw Exception(result.message())
         }
     }
-    override suspend fun getMap(lat: Double, lon: Double){
 
-    }
 }

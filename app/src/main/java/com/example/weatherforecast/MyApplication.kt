@@ -27,17 +27,18 @@ class MyApplication : Application() {
     private val _mutableWind = MutableStateFlow("m/s")
     val wind: StateFlow<String> = _mutableWind.asStateFlow()
 
-    var restarted = false
+    var reStarted = false
 
     override fun onCreate() {
         super.onCreate()
         sharedPreferences = applicationContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        val langCode = sharedPreferences.getString("LANGUAGE", "en") ?: "en"
-        setLanguage(this, langCode)
+
     }
 
-    fun getCurrentLanguage(): String {
-        return sharedPreferences.getString("Language", "en") ?: "en"
+    fun getCurrentLanguage(context: Context): String {
+        val sharedPreferences: SharedPreferences = context.getSharedPreferences("Settings", Context.MODE_PRIVATE)
+        val savedLang = sharedPreferences.getString("Language", "en")
+        return savedLang?:"en"
     }
 
 
@@ -138,24 +139,6 @@ class MyApplication : Application() {
             else -> "غدا"
         }
     }
-
-    /*fun convertWeatherToArabic(weather:String):String{
-        if (Locale.getDefault().language == "en") {
-            return weather
-        }
-        return when(weather){
-            "clear sky" -> "سماء صافية"
-            "few clouds" -> "غيوم قليلة"
-            "scattered clouds" -> "غيوم متناثرة"
-            "broken clouds" -> "غيوم متقطعة"
-            "shower rain" -> "أمطار متفرقة"
-            "rain" -> "مطر"
-            "thunderstorm" -> "عاصفة رعدية"
-            "snow" -> "ثلج"
-            "mist" -> "ضباب"
-            else -> "غيوم متفرقه"
-        }
-    }*/
 
     fun convertTemperature(kelvin: Double): String {
         val result =  when (_mutableTemp.value) {

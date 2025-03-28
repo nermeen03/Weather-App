@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.weatherforecast.R
 import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.pojo.CountriesListItem
+import com.example.weatherforecast.data.pojo.FavDetails
 import com.example.weatherforecast.data.pojo.Location
 import com.example.weatherforecast.data.pojo.NameResponseItem
 import com.example.weatherforecast.data.repo.FavLocationsRepository
@@ -30,12 +31,20 @@ import java.io.InputStreamReader
 
 class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRepository):ViewModel(){
 
+    private val mutableLocResponse = MutableStateFlow(Response.Loading as Response<*>)
+    private val mutableDetailsResponse = MutableStateFlow(Response.Loading as Response<*>)
+
+
     private val mutableResponse = MutableStateFlow(Response.Loading as Response<*>)
     val response = mutableResponse.asStateFlow()
 
     private val handle = CoroutineExceptionHandler { _, exception ->
         mutableResponse.value = Response.Failure(exception)
+        Log.e("TAG", "Error inserting location", exception)
     }
+
+    private val mutableFavDetails = MutableStateFlow<FavDetails?>(null)
+    val favDetail =mutableFavDetails.asStateFlow()
 
     private val mutableFavLocations = MutableStateFlow<List<Location>>(emptyList())
     val favLocations =mutableFavLocations.asStateFlow()
@@ -51,20 +60,46 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
     private val _filteredCountries = MutableStateFlow<List<CountriesListItem>>(emptyList())
     val filteredCountries: StateFlow<List<CountriesListItem>> = _filteredCountries
 
-     fun insertLocation(location: Location){
+     fun insertLocation(location: Location,favDetails: FavDetails){
        viewModelScope.launch(Dispatchers.IO+handle) {
-            val result = favLocationsRepository.insertFav(location)
-            if(result>=0){ mutableResponse.value = Response.Success }
-            else{ mutableResponse.value = Response.Failure(Exception("an error occurred")) }
-        }
+           val result = favLocationsRepository.insertFav(location)
+           if (result > 0) {
+               mutableLocResponse.value = Response.Success
+           } else {
+               mutableLocResponse.value = Response.Failure(Exception("Insert failed"))
+           }
+           updateResponseState()
+           val result2 = favLocationsRepository.insertFavDetail(favDetails)
+           if (result2 > 0) {
+               mutableDetailsResponse.value = Response.Success
+           } else {
+               mutableDetailsResponse.value = Response.Failure(Exception("Insert failed"))
+           }
+           updateResponseState()
+       }
     }
-    fun deleteLocation(lat: Double, lon: Double){
-        viewModelScope.launch(Dispatchers.IO+handle){
+    fun deleteLocation(lat: Double, lon: Double) {
+        viewModelScope.launch(Dispatchers.IO + handle) {
+            Log.i("DELETE", "Attempting to delete location: $lat, $lon")
+            val result2 = favLocationsRepository.deleteFavDetails(lat, lon)
+            if (result2 > 0) {
+                mutableDetailsResponse.value = Response.Success
+            } else {
+                mutableDetailsResponse.value = Response.Failure(Exception("Failed to delete details"))
+            }
+            updateResponseState()
             val result = favLocationsRepository.deleteFav(lat, lon)
-            if(result>0){ mutableResponse.value = Response.Success }
-            else{ mutableResponse.value = Response.Failure(Exception("an error occurred")) }
+            if (result > 0) {
+                mutableLocResponse.value = Response.Success
+            } else {
+                mutableLocResponse.value = Response.Failure(Exception("Failed to delete location"))
+            }
+            updateResponseState()
+
+            Log.i("DELETE", "Delete Results - Location: $result, Details: $result2")
         }
     }
+
     fun getAllFav(){
         viewModelScope.launch(Dispatchers.IO+handle){
             favLocationsRepository.getAllFav().distinctUntilChanged().retry(3)
@@ -75,6 +110,21 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
                 }
         }
     }
+
+     fun getFavDetails(lon: Double, lat: Double) {
+        viewModelScope.launch(Dispatchers.IO+handle){
+            favLocationsRepository.getFavDetail(lon, lat)
+                .distinctUntilChanged()
+                .catch { e -> mutableResponse.value = Response.Failure(e) }
+                .collect {
+                    mutableFavDetails.value = it
+                    mutableResponse.value = Response.Success
+                }
+        }
+    }
+
+
+
     fun getLocationName(lat: Double, lon: Double) {
         mutableResponse.value = Response.Loading
         viewModelScope.launch(Dispatchers.IO + handle) {
@@ -90,6 +140,21 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
                         mutableResponse.value = Response.Failure(Exception("No location found"))
                     }
                 }
+        }
+    }
+
+    private fun updateResponseState() {
+        val location = mutableLocResponse.value
+        val details = mutableDetailsResponse.value
+
+        mutableResponse.value = when {
+            location is Response.Success && details is Response.Success-> {
+                Log.i("TAG", "updateResponseState: both success")
+                Response.Success
+            }
+            location is Response.Failure -> location
+            details is Response.Failure -> details
+            else -> Response.Loading
         }
     }
 

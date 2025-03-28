@@ -32,7 +32,7 @@ class FavLocationsLocalTest {
     private lateinit var favLocationsRemoteDataSource: FavLocationsRemoteDataSource
     private lateinit var favLocationsRepository: FavLocationsRepository
 
-    private var location: Location = Location("city1","city2",2.0,2.0)
+    private var location: Location = Location("city1","city2",2.0,2.0,"arabic")
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Before

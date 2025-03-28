@@ -16,7 +16,10 @@ sealed class ScreenRoute(val route: String) {
     data object AlertScreenRoute : ScreenRoute("alert")
     @Serializable
     data object SettingsScreenRoute : ScreenRoute("settings")
-
+    @Serializable
+    data object DetailsOfflineRoute : ScreenRoute("details_offline_screen/{lat}/{lon}") {
+        fun withArgs(lat: Double, lon: Double): String = "details_offline_screen/$lat/$lon"
+    }
     companion object {
         fun detailsRoute(lat: Double, lon: Double): String = "details/$lat/$lon"
     }

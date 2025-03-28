@@ -1,7 +1,9 @@
 package com.example.weatherforecast.view.favorite
 
+import android.os.Build
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,13 +50,20 @@ import com.example.weatherforecast.R
 import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.local.favorite.FavLocationsDataBase
 import com.example.weatherforecast.data.local.favorite.FavLocationsLocalDataSource
+import com.example.weatherforecast.data.pojo.FavDetails
+import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.pojo.LocalNames
 import com.example.weatherforecast.data.pojo.Location
 import com.example.weatherforecast.data.pojo.NameResponseItem
+import com.example.weatherforecast.data.pojo.WeatherDetails
 import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource
 import com.example.weatherforecast.data.remote.RetrofitHelper
+import com.example.weatherforecast.data.repo.DailyDataRepository
 import com.example.weatherforecast.data.repo.FavLocationsRepository
+import com.example.weatherforecast.view.GetWeatherDataByLoc
+import com.example.weatherforecast.viewModel.DailyDataViewModel
+import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
@@ -64,6 +73,7 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MapScreen(navController:NavHostController) {
     val previousEntry = navController.previousBackStackEntry
@@ -74,18 +84,23 @@ fun MapScreen(navController:NavHostController) {
     val context = LocalContext.current
     val apiKey = stringResource(R.string.map_api)
 
-    val viewModel: FavLocationsViewModel = viewModel(factory = FavLocationsViewModel.FavLocationsViewModelFactory(
+    val favViewModel: FavLocationsViewModel = viewModel(factory = FavLocationsViewModel.FavLocationsViewModelFactory(
         FavLocationsRepository.getRepository(
             FavLocationsLocalDataSource(FavLocationsDataBase.getInstance(context).getFavLocationsDao()),
             FavLocationsRemoteDataSource(RetrofitHelper.retrofitInstance.create(ApiService::class.java))
         )
     ))
+
+    val detailViewModel: DailyDataViewModel =
+        viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
+
+
     LaunchedEffect(Unit) {
-        viewModel.loadCountries(context)
+        favViewModel.loadCountries(context)
     }
-    val selectedLocation by viewModel.selectedLocation.collectAsState()
-    val locationName by viewModel.locationName.collectAsState()
-    val responseState by viewModel.response.collectAsState()
+    val selectedLocation by favViewModel.selectedLocation.collectAsState()
+    val locationName by favViewModel.locationName.collectAsState()
+    val responseState by favViewModel.response.collectAsState()
     val textFlow = MutableSharedFlow<String>(replay = 1)
     val scope = rememberCoroutineScope()
     val searchQuery = remember { mutableStateOf("") }
@@ -107,7 +122,7 @@ fun MapScreen(navController:NavHostController) {
                 val mapView = MapView(ctx).apply { onCreate(null) }
                 mapView.getMapAsync { map ->
                     mapLibreMap = map
-                    viewModel.onMapReady(map, apiKey)
+                    favViewModel.onMapReady(map, apiKey)
                 }
                 mapView
             }
@@ -142,8 +157,8 @@ fun MapScreen(navController:NavHostController) {
                     .background(colorResource(R.color.white))
             )
 
-            viewModel.filterCountries(searchQuery.value)
-            val filtered = viewModel.filteredCountries.collectAsStateWithLifecycle().value
+            favViewModel.filterCountries(searchQuery.value)
+            val filtered = favViewModel.filteredCountries.collectAsStateWithLifecycle().value
 
             LazyColumn {
                 items(filtered.size) {
@@ -157,7 +172,7 @@ fun MapScreen(navController:NavHostController) {
                                     val selected = filtered[it]
                                     textFlow.emit("${selected.name}, ${selected.country}")
                                     val latLng = LatLng(selected.coord.lat, selected.coord.lon)
-                                    viewModel.addMark(mapLibreMap, latLng)
+                                    favViewModel.addMark(mapLibreMap, latLng)
                                     val name = NameResponseItem(
                                         filtered[it].country, filtered[it].coord.lat,
                                         LocalNames(
@@ -189,14 +204,14 @@ fun MapScreen(navController:NavHostController) {
                 contentAlignment = Alignment.BottomCenter
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    SelectedLocationByName(locationSelected!!,viewModel,previousRoute)
+                    SelectedLocationByName(locationSelected!!,favViewModel,detailViewModel,previousRoute)
                 }
             }
         }
         selectedLocation?.let { location ->
 
             LaunchedEffect(location) {
-                viewModel.getLocationName(location.latitude, location.longitude)
+                favViewModel.getLocationName(location.latitude, location.longitude)
             }
 
             Box(
@@ -211,7 +226,7 @@ fun MapScreen(navController:NavHostController) {
                     when (responseState) {
                         is Response.Success -> {
                             if (locationName != null) {
-                                SelectedLocationByName(locationName!!, viewModel,previousRoute)
+                                SelectedLocationByName(locationName!!, favViewModel,detailViewModel,previousRoute)
                             } else {
                                 SelectedLocation(location.latitude, location.longitude)
                             }
@@ -222,12 +237,7 @@ fun MapScreen(navController:NavHostController) {
                 }
             }
         }
-
     }
-
-
-
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -266,10 +276,12 @@ fun SelectedLocation(lat: Double, long: Double) {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsViewModel,route:String?) {
+fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsViewModel,detailViewModel:DailyDataViewModel,route:String?) {
     val context = LocalContext.current
     val application = context.applicationContext as MyApplication
+    var showDetails by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -293,14 +305,7 @@ fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsVi
             Button(
                 onClick = {
                     if(route == "favorite") {
-                        viewModel.insertLocation(
-                            Location(
-                                name = location.name,
-                                country = location.country,
-                                lon = location.lon,
-                                lat = location.lat
-                            )
-                        )
+                        showDetails = true
 
                         when (viewModel.response.value) {
                             is Response.Success -> {
@@ -336,6 +341,71 @@ fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsVi
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(stringResource(R.string.save_location))
             }
+            if (showDetails) {
+                SaveLocation(location,detailViewModel,viewModel)
+            }
         }
     }
 }
+
+@Composable
+@RequiresApi(Build.VERSION_CODES.O)
+fun SaveLocation(
+    location: NameResponseItem,
+    detailViewModel: DailyDataViewModel,
+    viewModel: FavLocationsViewModel
+) {
+    val context = LocalContext.current
+
+    var currentDetails by remember { mutableStateOf<WeatherDetails?>(null) }
+    var hourlyList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
+    var daysList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
+    var arabicData by remember { mutableStateOf<List<String>>(emptyList()) }
+    var isSaved by remember { mutableStateOf(false) }
+
+    val response = detailViewModel.response.collectAsStateWithLifecycle()
+    GetWeatherDataByLoc(
+        updateCurrent = { newDetails -> currentDetails = newDetails },
+        updateList = { hourly, days ->
+            hourlyList = hourly
+            daysList = days
+        },
+        arabicData = { data -> arabicData = data },
+        long = location.lon,
+        lat = location.lat,
+        viewModel = detailViewModel
+    )
+
+    LaunchedEffect(response.value) {
+        if (response.value is Response.Success && currentDetails != null) {
+            Log.i("TAG", "SaveLocation: ${currentDetails?.temp}")
+            if (!isSaved && currentDetails != null && hourlyList.isNotEmpty() && daysList.isNotEmpty()) {
+                Log.i("TAG", "SaveLocation: inside")
+                val favDetails = FavDetails(
+                    currentWeather = currentDetails!!,
+                    hourlyWeather = hourlyList,
+                    dailyWeather = daysList,
+                    lat = location.lat,
+                    lon = location.lon,
+                    location = "${location.name}, ${location.country}",
+                    arabicData = arabicData.ifEmpty { listOf("No Data") }
+                )
+
+                val locationDetails = Location(
+                    name = location.name,
+                    country = location.country,
+                    lon = location.lon,
+                    lat = location.lat,
+                    arabicName = ""
+                )
+
+                viewModel.insertLocation(locationDetails, favDetails)
+
+                Toast.makeText(context, "Location Saved!", Toast.LENGTH_SHORT).show()
+
+                isSaved = true
+            }
+        }
+    }
+}
+

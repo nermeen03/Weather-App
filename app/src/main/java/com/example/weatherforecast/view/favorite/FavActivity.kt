@@ -1,6 +1,8 @@
 package com.example.weatherforecast.view.favorite
 
+import android.os.Build
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -47,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.weatherforecast.MyApplication
 import com.example.weatherforecast.R
 import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.local.favorite.FavLocationsDataBase
@@ -61,12 +64,15 @@ import com.example.weatherforecast.view.utils.internet
 import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun FavScreen(navController: NavHostController,
-              navToDetails: (lat: Double, lon: Double) -> Unit) {
+              navToDetails: (lat: Double, lon: Double) -> Unit,
+              ) {
     val context = LocalContext.current
     val viewModel: FavLocationsViewModel = viewModel(
         factory = FavLocationsViewModel.FavLocationsViewModelFactory(
@@ -141,13 +147,16 @@ fun FavScreen(navController: NavHostController,
             if (favList.isEmpty()) {
                 NoFav()
             } else {
-                FavList(
-                    list = favList,
-                    viewModel = viewModel,
-                    navToDetails = navToDetails,
-                    snackBarHostState = snackBarHostState,
-                    coroutineScope = coroutineScope
-                )
+                Box(modifier = Modifier.weight(1f)) {
+                    FavList(
+                        list = favList,
+                        viewModel = viewModel,
+                        navToDetails = navToDetails,
+                        snackBarHostState = snackBarHostState,
+                        coroutineScope = coroutineScope,
+                        navController = navController
+                    )
+                }
             }
         }
     }
@@ -163,13 +172,15 @@ fun NoFav() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun FavList(
     list: List<Location>,
     viewModel: FavLocationsViewModel,
     navToDetails: (lat: Double, lon: Double) -> Unit,
     snackBarHostState: SnackbarHostState,
-    coroutineScope: CoroutineScope
+    coroutineScope: CoroutineScope,
+    navController: NavHostController
 ) {
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -180,7 +191,8 @@ fun FavList(
                 item = list[index],
                 viewModel = viewModel,
                 snackBarHostState = snackBarHostState,
-                coroutineScope = coroutineScope
+                coroutineScope = coroutineScope,
+                navController = navController
             ) {
                 val lat = list[index].lat
                 val lon = list[index].lon
@@ -191,22 +203,36 @@ fun FavList(
 }
 
 
-
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun FavRow(
     item: Location,
     viewModel: FavLocationsViewModel,
     snackBarHostState: SnackbarHostState,
     coroutineScope: CoroutineScope,
+    navController: NavHostController,
     function: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val application = context.applicationContext as MyApplication
+    val textValue = if (application.getCurrentLanguage(context) == "en")
+        "${item.name}, ${item.country}"
+    else
+        item.arabicName
 
     Card(
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
-            .clickable(onClick = function),
+            .clickable {
+                isInternetAvailable(context)
+                if (internet.value) {
+                    function()
+                } else {
+                    navController.navigate(ScreenRoute.DetailsOfflineRoute.withArgs(item.lat, item.lon))
+                }
+            },
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Row(
@@ -217,7 +243,7 @@ fun FavRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${item.name}, ${item.country}",
+                    text = textValue,
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -229,26 +255,30 @@ fun FavRow(
 
             Button(
                 onClick = {
-                    val loc = item
-                    viewModel.deleteLocation(item.lat, item.lon)
-                    when (viewModel.response.value) {
-                        is Response.Success -> {
-                            coroutineScope.launch {
-                                val result = snackBarHostState.showSnackbar(
-                                    message = "Deleted Successfully!",
-                                    actionLabel = "Undo"
-                                )
-                                if (result == SnackbarResult.ActionPerformed) {
-                                    viewModel.insertLocation(loc)
+                    scope.launch {
+                        viewModel.getFavDetails(item.lon, item.lat)
+                        val details = viewModel.favDetail.first()
+                        viewModel.deleteLocation(item.lat, item.lon)
+                        when (viewModel.response.value) {
+                            is Response.Success -> {
+                                coroutineScope.launch {
+                                    val result = snackBarHostState.showSnackbar(
+                                        message = "Deleted Successfully!",
+                                        actionLabel = "Undo"
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) {
+                                        viewModel.insertLocation(item, details!!)
+                                    }
                                 }
                             }
-                        }
-                        else -> {
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.couldn_t_be_removed),
-                                Toast.LENGTH_SHORT
-                            ).show()
+
+                            else -> {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.couldn_t_be_removed),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         }
                     }
                 },
@@ -263,5 +293,4 @@ fun FavRow(
         }
     }
 }
-
 

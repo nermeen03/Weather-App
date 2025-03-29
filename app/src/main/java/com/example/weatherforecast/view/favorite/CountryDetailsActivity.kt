@@ -3,9 +3,6 @@ package com.example.weatherforecast.view.favorite
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -14,11 +11,7 @@ import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.weatherforecast.MyApplication
@@ -147,21 +140,19 @@ fun DetailsScreenOffline(
             FavLocationsRepository.getRepository(
                 FavLocationsLocalDataSource(FavLocationsDataBase.getInstance(context).getFavLocationsDao()),
                 FavLocationsRemoteDataSource(RetrofitHelper.retrofitInstance.create(ApiService::class.java))
-            )
-        )
-    )
+            )))
+    val dataViewModel: DailyDataViewModel =
+        viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
 
-    // Fetch data when screen is first created
+    val favDetails = viewModel.favDetail.collectAsStateWithLifecycle()
+    val response = viewModel.response.collectAsStateWithLifecycle()
+
     LaunchedEffect(Unit) {
         viewModel.getFavDetails(lon, lat)
     }
 
-    // Observe state from ViewModel
-    val favDetails by viewModel.favDetail.collectAsStateWithLifecycle()
-
-    Log.i("TAG", "DetailsScreenOffline: $favDetails")
-
-    favDetails?.let { details ->
+    if (response.value == Response.Success && favDetails.value != null) {
+        val details = favDetails.value!!
         val temp = details.currentWeather.temp
         val feelLike = details.currentWeather.feelLike
         val weather = details.currentWeather.weather
@@ -169,23 +160,20 @@ fun DetailsScreenOffline(
         val state = details.currentWeather.state
         val todayDetails = DailyDetails(
             details.currentWeather.pressure, details.currentWeather.humidity,
-            details.currentWeather.speed, details.currentWeather.cloud
-        )
+            details.currentWeather.speed, details.currentWeather.cloud)
         val hourlyList = details.hourlyWeather
         val daysList = details.dailyWeather
         val arabicData = details.arabicData
 
-        val dataViewModel: DailyDataViewModel =
-            viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
-
         Log.d("TAG", "Hourly List Size: ${arabicData.size}")
         Log.d("TAG", "Daily List Size: ${daysList.size}")
+        Log.d("DetailsScreenOffline", "Daily List Size: ${daysList.size}")
 
-        WeatherSections(dataViewModel, context, weather, feelLike, state, temp, location, hourlyList, todayDetails, daysList, arabicData)
-    } ?: run {
-        // Show loading or error UI
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = "Loading...", fontSize = 20.sp, color = Color.White)
-        }
+        WeatherSections(dataViewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
+
     }
+
+
+
+
 }

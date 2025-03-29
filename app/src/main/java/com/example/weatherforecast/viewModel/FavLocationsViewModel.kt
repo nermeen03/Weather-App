@@ -60,7 +60,18 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
     private val _filteredCountries = MutableStateFlow<List<CountriesListItem>>(emptyList())
     val filteredCountries: StateFlow<List<CountriesListItem>> = _filteredCountries
 
-     fun insertLocation(location: Location,favDetails: FavDetails){
+     fun insertLocation(location: Location){
+       viewModelScope.launch(Dispatchers.IO+handle) {
+           val result = favLocationsRepository.insertFav(location)
+           if (result > 0) {
+               mutableLocResponse.value = Response.Success
+           } else {
+               mutableLocResponse.value = Response.Failure(Exception("Insert failed"))
+           }
+           updateResponseState()
+       }
+    }
+    fun insertLocation(location: Location,favDetails: FavDetails){
        viewModelScope.launch(Dispatchers.IO+handle) {
            val result = favLocationsRepository.insertFav(location)
            if (result > 0) {
@@ -78,6 +89,8 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
            updateResponseState()
        }
     }
+
+
     fun deleteLocation(lat: Double, lon: Double) {
         viewModelScope.launch(Dispatchers.IO + handle) {
             Log.i("DELETE", "Attempting to delete location: $lat, $lon")
@@ -111,17 +124,21 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
         }
     }
 
-     fun getFavDetails(lon: Double, lat: Double) {
-        viewModelScope.launch(Dispatchers.IO+handle){
+    fun getFavDetails(lon: Double, lat: Double) {
+        viewModelScope.launch(Dispatchers.IO) {
             favLocationsRepository.getFavDetail(lon, lat)
+                .catch { e ->
+                    mutableResponse.value = Response.Failure(e)
+                }
                 .distinctUntilChanged()
-                .catch { e -> mutableResponse.value = Response.Failure(e) }
-                .collect {
-                    mutableFavDetails.value = it
+                .collect { details ->
+                    Log.i("TAG", "getFavDetails: $details")
+                    mutableFavDetails.value = details
                     mutableResponse.value = Response.Success
                 }
         }
     }
+
 
 
 

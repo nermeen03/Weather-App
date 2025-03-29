@@ -1,6 +1,7 @@
 package com.example.weatherforecast.view.favorite
 
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
@@ -64,7 +65,6 @@ import com.example.weatherforecast.view.utils.internet
 import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 
@@ -105,8 +105,8 @@ fun FavScreen(navController: NavHostController,
                     else{
                         coroutineScope.launch {
                             val result = snackBarHostState.showSnackbar(
-                                message = "No internet connection!",
-                                actionLabel = "Retry"
+                                message = context.getString(R.string.no_internet_connection),
+                                actionLabel = context.getString(R.string.retry)
                             )
                             if (result == SnackbarResult.ActionPerformed) {
                                 isInternetAvailable(context)
@@ -216,6 +216,8 @@ fun FavRow(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val application = context.applicationContext as MyApplication
+    val favDetails = viewModel.favDetail.collectAsStateWithLifecycle()
+    val response = viewModel.response.collectAsStateWithLifecycle()
     val textValue = if (application.getCurrentLanguage(context) == "en")
         "${item.name}, ${item.country}"
     else
@@ -230,7 +232,12 @@ fun FavRow(
                 if (internet.value) {
                     function()
                 } else {
-                    navController.navigate(ScreenRoute.DetailsOfflineRoute.withArgs(item.lat, item.lon))
+                    navController.navigate(
+                        ScreenRoute.DetailsOfflineRoute.withArgs(
+                            item.lat,
+                            item.lon
+                        )
+                    )
                 }
             },
         elevation = CardDefaults.cardElevation(4.dp)
@@ -256,18 +263,36 @@ fun FavRow(
             Button(
                 onClick = {
                     scope.launch {
-                        viewModel.getFavDetails(item.lon, item.lat)
-                        val details = viewModel.favDetail.first()
                         viewModel.deleteLocation(item.lat, item.lon)
                         when (viewModel.response.value) {
                             is Response.Success -> {
                                 coroutineScope.launch {
                                     val result = snackBarHostState.showSnackbar(
-                                        message = "Deleted Successfully!",
-                                        actionLabel = "Undo"
+                                        message = context.getString(R.string.deleted_successfully),
+                                        actionLabel = context.getString(R.string.undo)
                                     )
                                     if (result == SnackbarResult.ActionPerformed) {
-                                        viewModel.insertLocation(item, details!!)
+                                        Log.i("TAG", "FavRow: Undo action triggered")
+
+                                        viewModel.getFavDetails(item.lon, item.lat)
+
+                                        when (response.value) {
+                                            is Response.Success -> {
+                                                Log.i("TAG", "FavRow: Re-inserting location after undo")
+                                                viewModel.insertLocation(item, favDetails.value!!)
+                                            }
+                                            is Response.Failure -> {
+                                                Log.e("TAG", "FavRow: Failed to fetch details, inserting without weather data")
+                                                viewModel.insertLocation(item)
+                                            }
+                                            Response.Loading -> Log.i("TAG", "FavRow: Waiting for response...")
+                                        }
+
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.inserted_successfully),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 }
                             }
@@ -290,6 +315,7 @@ fun FavRow(
             ) {
                 Text(stringResource(R.string.remove))
             }
+
         }
     }
 }

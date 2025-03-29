@@ -423,6 +423,19 @@ fun GetWeatherData(
             }
         }
     }
+    /*LaunchedEffect(Unit) {
+        snapshotFlow { currentLocation.value }
+            .distinctUntilChanged()
+            .debounce(300)
+            .flowOn(Dispatchers.IO)
+            .collectLatest { loc ->
+                val (lat, long) = loc
+                if (internet.value && lat != -1.0 && long != -1.0) {
+                    Log.i("TAG", "Fetching weather data for $lat, $long")
+                    viewModel.fetchWeatherData(lat, long)
+                }
+            }
+    }*/
 
     if(message.value == Response.Success && currentWeather.value != null && filteredWeather.value?.second != emptyList<HourlyDetails>() && langData.value.isNotEmpty()){
         updateCurrent(currentWeather.value!!)

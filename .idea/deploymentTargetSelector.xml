@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-03-28T18:28:03.643928200Z">
+        <DropdownSelection timestamp="2025-03-29T19:25:14.351587600Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\nerme\.android\avd\Medium_Phone_API_31_2.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\nerme\.android\avd\Copy_of_Medium_Phone_API_31.avd" />
             </handle>
           </Target>
         </DropdownSelection>

@@ -114,8 +114,8 @@ fun AlertsScreen() {
                     } else {
                         coroutineScope.launch {
                             val result = snackBarHostState.showSnackbar(
-                                message = "No internet connection!",
-                                actionLabel = "Retry"
+                                message = context.getString(R.string.no_internet_connection),
+                                actionLabel = context.getString(R.string.retry)
                             )
                             if (result == SnackbarResult.ActionPerformed) {
                                 if (internet.value) {
@@ -195,6 +195,9 @@ fun AlertsList(list: List<AlertsData>,
 @Composable
 fun AlertRow(item: AlertsData, viewModel: AlertsViewModel) {
     val context = LocalContext.current
+    val application = context.applicationContext as MyApplication
+    val date = application.convertDateToArabic(item.date)
+
     Card(
         modifier = Modifier
             .padding(8.dp)
@@ -214,7 +217,7 @@ fun AlertRow(item: AlertsData, viewModel: AlertsViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${item.date}, ${item.time}",
+                        text = "${date}, ${item.time}",
                         style = MaterialTheme.typography.bodyLarge
                     )
 
@@ -276,6 +279,8 @@ fun ChooseAlertDialog(
     var selectedMinutes by remember { mutableIntStateOf(0) }
     var selectedSeconds by remember { mutableIntStateOf(0) }
     val totalMillis = (selectedMinutes * 60 + selectedSeconds) * 1000L
+    val application = context.applicationContext as MyApplication
+
 
 
     val datePickerDialog = DatePickerDialog(
@@ -318,7 +323,7 @@ fun ChooseAlertDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(onClick = { datePickerDialog.show() }) {
-                    Text(if (selectedDate.isEmpty()) stringResource(R.string.select_date) else stringResource(R.string.date) +selectedDate)
+                    Text(if (selectedDate.isEmpty()) stringResource(R.string.select_date) else stringResource(R.string.date) +application.convertDateToArabic(selectedDate))
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 

@@ -40,10 +40,9 @@ fun SettingsScreen(navController: NavHostController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp), // More padding for better spacing
-        verticalArrangement = Arrangement.spacedBy(24.dp) // Uniform spacing between sections
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Location Selection
         Text(
             text = stringResource(R.string.choose_location),
             fontWeight = FontWeight.Bold,
@@ -86,7 +85,6 @@ fun SettingsScreen(navController: NavHostController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Temperature Unit Selection
         Text(
             text = stringResource(R.string.temperature_unit),
             fontWeight = FontWeight.Bold,
@@ -118,7 +116,6 @@ fun SettingsScreen(navController: NavHostController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Wind Speed Unit Selection
         Text(
             text = stringResource(R.string.wind_speed_unit),
             fontWeight = FontWeight.Bold,
@@ -149,7 +146,6 @@ fun SettingsScreen(navController: NavHostController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Language Selection
         Text(
             text = stringResource(R.string.language),
             fontWeight = FontWeight.Bold,

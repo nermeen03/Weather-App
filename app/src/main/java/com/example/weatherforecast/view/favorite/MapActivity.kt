@@ -306,24 +306,6 @@ fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsVi
                 onClick = {
                     if(route == "favorite") {
                         showDetails = true
-
-                        when (viewModel.response.value) {
-                            is Response.Success -> {
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.added_successfully),
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-
-                            else -> {
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.couldn_t_be_added),
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
                     }else{
                         application.setCurrentLocation(Pair(location.lat,location.lon))
                         Toast.makeText(
@@ -342,6 +324,7 @@ fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsVi
                 Text(stringResource(R.string.save_location))
             }
             if (showDetails) {
+                Log.i("TAG", "SelectedLocationByName: inside")
                 SaveLocation(location,detailViewModel,viewModel)
             }
         }
@@ -378,7 +361,7 @@ fun SaveLocation(
 
     LaunchedEffect(response.value) {
         if (response.value is Response.Success && currentDetails != null) {
-            Log.i("TAG", "SaveLocation: ${currentDetails?.temp}")
+            Log.i("TAG", "SaveLocation: Trying to save location: ${location.name}, ${location.country}")
             if (!isSaved && currentDetails != null && hourlyList.isNotEmpty() && daysList.isNotEmpty()) {
                 Log.i("TAG", "SaveLocation: inside")
                 val favDetails = FavDetails(
@@ -396,14 +379,45 @@ fun SaveLocation(
                     country = location.country,
                     lon = location.lon,
                     lat = location.lat,
-                    arabicName = ""
+                    arabicName = arabicData[1]
                 )
 
                 viewModel.insertLocation(locationDetails, favDetails)
-
-                Toast.makeText(context, "Location Saved!", Toast.LENGTH_SHORT).show()
-
-                isSaved = true
+                if (response.value is Response.Success) {
+                    Log.i("TAG", "SaveLocation: done")
+                    Toast.makeText(context, context.getString(R.string.added_successfully)
+                        , Toast.LENGTH_SHORT).show()
+                    isSaved = true
+                }else{
+                    viewModel.insertLocation(locationDetails)
+                    if (response.value is Response.Success) {
+                        Log.i("TAG", "SaveLocation: done")
+                        Toast.makeText(context, context.getString(R.string.added_successfully)
+                            , Toast.LENGTH_SHORT).show()
+                        isSaved = true
+                    }else{
+                        Toast.makeText(context, context.getString(R.string.an_error_occurred)
+                            , Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }else{
+                val locationDetails = Location(
+                    name = location.name,
+                    country = location.country,
+                    lon = location.lon,
+                    lat = location.lat,
+                    arabicName = arabicData[0]
+                )
+                viewModel.insertLocation(locationDetails)
+                if (response.value is Response.Success) {
+                    Log.i("TAG", "SaveLocation: done")
+                    Toast.makeText(context, context.getString(R.string.added_successfully)
+                        , Toast.LENGTH_SHORT).show()
+                    isSaved = true
+                }else{
+                    Toast.makeText(context, context.getString(R.string.an_error_occurred)
+                        , Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

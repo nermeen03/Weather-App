@@ -36,7 +36,7 @@
     <string name="selected_val">الموقع المحدد: </string>
     <string name="comma">، </string>
     <string name="end_par">)</string>
-    <string name="location_format">الموقع المحدد: %s، %s)</string>
+    <string name="location_format">الموقع المحدد: (</string>
     <string name="added_successfully">تمت الإضافة بنجاح</string>
     <string name="couldn_t_be_added">تعذر الإضافة</string>
     <string name="add_to_favorites">أضف إلى المفضلة</string>
@@ -86,5 +86,11 @@
     <string name="favorite">المفضلة</string>
     <string name="alerts">التنبيهات</string>
     <string name="settings">الإعدادات</string>
+    <string name="inserted_successfully">تم الإدراج بنجاح</string>
+    <string name="an_error_occurred">حدث خطأ</string>
+    <string name="deleted_successfully">تم الحذف بنجاح!</string>
+    <string name="undo">تراجع</string>
+    <string name="no_internet_connection">لا يوجد اتصال بالإنترنت!</string>
+    <string name="retry">إعادة المحاولة</string>
 
 </resources>

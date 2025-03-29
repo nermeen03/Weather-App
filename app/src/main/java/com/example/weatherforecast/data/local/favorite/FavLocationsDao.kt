@@ -22,7 +22,7 @@ interface FavLocationsDao{
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveFavDetails(favDetails: FavDetails):Long
 
-    @Query("SELECT * FROM fav_details WHERE lon = :lon AND lat = :lat")
+    @Query("SELECT * FROM fav_details WHERE ABS(lon - :lon) < 0.000001 AND ABS(lat - :lat) < 0.000001")
     fun getFavDetails(lon: Double, lat: Double): Flow<FavDetails>
 
     @Query("DELETE FROM fav_details WHERE lon = :lon AND lat = :lat")

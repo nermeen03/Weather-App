@@ -58,7 +58,8 @@ fun MainScreen() {
     val response by viewModel.response.collectAsStateWithLifecycle()
     val application = context.applicationContext as MyApplication
 
-    if(!application.reStarted) {
+    if(!application.reStarted && internet.value) {
+        Log.i("TAG", "MainScreen: not restarted")
         GetWeatherData(
             updateCurrent = { newDetails ->
                 currentDetails = newDetails
@@ -111,6 +112,7 @@ fun MainScreen() {
     }
 
 
+    Log.i("TAG", "MainScreen: saved $savedWeather ${savedWeather?.temp}")
 
     if (internet.value && !application.reStarted) {
         Log.i("TAG", "MainScreen: Response status - $response")
@@ -139,7 +141,7 @@ fun MainScreen() {
 
         WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
     }
-    else if(!internet.value&&savedWeather!=null&& savedHourlyList.isNotEmpty()&&savedDailyList.isNotEmpty()){
+    else if(!internet.value && savedWeather!=null && savedDailyList.isNotEmpty()){
             Log.i("TAG", "MainScreen: Loading saved weather data")
 
             var isDataLoaded by remember { mutableStateOf(false) }

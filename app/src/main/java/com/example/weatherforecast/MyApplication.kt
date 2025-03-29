@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
+import android.util.Log
 import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.pojo.WeatherDetails
 import com.google.gson.Gson
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.text.NumberFormat
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -60,10 +62,16 @@ class MyApplication : Application() {
         _mutableLocation.value = lang
     }
     fun setCurrentLocation(loc: Pair<Double, Double>) {
+        Log.i("TAG", "setCurrentLocation: Current -> ${_mutableCurrentLocation.value}, New -> $loc")
+
         if (_mutableCurrentLocation.value != loc) {
             _mutableCurrentLocation.value = loc
+            Log.i("TAG", "setCurrentLocation: Updated to -> ${_mutableCurrentLocation.value}")
+        } else {
+            Log.i("TAG", "setCurrentLocation: No change in location")
         }
     }
+
 
     fun setTemp(str: String) {
         _mutableTemp.value = str
@@ -111,18 +119,33 @@ class MyApplication : Application() {
         }.joinToString("")
     }
 
-    fun convertDateToArabic(dateString: String, inputFormat: String = "yyyy-MM-dd"): String {
+    fun convertDateToArabic(dateString: String): String {
         if (Locale.getDefault().language == "en") {
             return dateString
         }
 
         val locale = Locale("ar")
-        val sdf = SimpleDateFormat(inputFormat, Locale.ENGLISH)
-        val date: Date = sdf.parse(dateString) ?: return dateString
-        val arabicFormat = SimpleDateFormat("dd MMMM yyyy", locale)
 
-        return convertNumbersInString(arabicFormat.format(date))
+        val possibleFormats = listOf("yyyy-MM-dd", "dd/M/yyyy", "dd/MM/yyyy", "M/d/yyyy", "MM/dd/yyyy")
+
+        var parsedDate: Date? = null
+
+        for (format in possibleFormats) {
+            try {
+                val sdf = SimpleDateFormat(format, Locale.ENGLISH)
+                parsedDate = sdf.parse(dateString)
+                if (parsedDate != null) break
+            } catch (e: ParseException) {
+                // Ignore and try the next format
+            }
+        }
+
+        if (parsedDate == null) return dateString
+
+        val arabicFormat = SimpleDateFormat("dd MMMM yyyy", locale)
+        return convertNumbersInString(arabicFormat.format(parsedDate))
     }
+
 
     fun convertDayToArabic(day:String):String{
         if (Locale.getDefault().language == "en") {
@@ -140,17 +163,21 @@ class MyApplication : Application() {
         }
     }
 
-    fun convertTemperature(kelvin: Double): String {
-        val result =  when (_mutableTemp.value) {
-            "Celsius","C","°م" -> kelvin - 273.15
-            "Fahrenheit","F","ف" -> ((kelvin - 273.15) * 9 / 5) + 32
+    fun convertTemperature(kelvin: Double): String? {
+        val result = when (_mutableTemp.value) {
+            "Celsius", "C", "°م" -> kelvin - 273.15
+            "Fahrenheit", "F", "ف" -> ((kelvin - 273.15) * 9 / 5) + 32
             else -> kelvin
         }
-        if (Locale.getDefault().language == "en") {
-            return result.toString()
+        val formattedResult = String.format(Locale.ENGLISH, "%.2f", result).toDouble()
+
+        return if (Locale.getDefault().language == "en") {
+            formattedResult.toString()
+        } else {
+            convertToArabicNumbers(formattedResult)
         }
-        return convertToArabicNumbers(result)!!
     }
+
 
     fun translateChar(): String {
         if(Locale.getDefault().language == "en"){

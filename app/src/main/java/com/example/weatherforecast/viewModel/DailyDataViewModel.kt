@@ -64,6 +64,7 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
                     .collect {
                         mutableDailyData.value = it
                         mutableDailyResponse.value = Response.Success
+                        Log.i("TAG", "getDailyData: success")
                         updateResponseState()
                     }
             }
@@ -80,6 +81,7 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
                     .collect {
                         mutableCurrentWeather.value = it
                         mutableCurrentResponse.value = Response.Success
+                        Log.i("TAG", "getCurrentWeather: success1")
                         updateResponseState()
                     }
                 dataRepository.getArabicData(lat, lon).distinctUntilChanged().retry(3)
@@ -89,6 +91,7 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
                     .collect {
                         mutableArabicData.value = it
                         mutableArabicResponse.value = Response.Success
+                        Log.i("TAG", "getCurrentWeather: success2")
                         updateResponseState()
                     }
             }
@@ -102,9 +105,9 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
                 if (lat != -1.0 && lon != -1.0) {
                     val today = LocalDate.now().toString()
                     Log.i("TAG", "fetchWeatherData: done checking")
-                    getDailyData(lat, lon)
-                    getCurrentWeather(lat, lon)
                     viewModelScope.launch(Dispatchers.IO + handle) {
+                        getDailyData(lat, lon)
+                        getCurrentWeather(lat, lon)
                         mutableDailyData.collect { dailyDetails ->
                             dailyDetails?.let {
                                 val dailyDataList = dailyDetails.list
@@ -179,6 +182,7 @@ class DailyDataViewModel(private val dataRepository: IDailyDataRepository):ViewM
                             }
                         }
                     }
+                    Log.i("TAG", "fetchWeatherData: result ${response.value}")
                 }
             }
         }

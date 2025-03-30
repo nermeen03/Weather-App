@@ -451,6 +451,7 @@ fun GetWeatherData(
 
 }
 
+@SuppressLint("StateFlowValueCalledInComposition")
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun GetWeatherDataByLoc(
@@ -472,12 +473,20 @@ fun GetWeatherDataByLoc(
     val message = viewModel.response.collectAsStateWithLifecycle()
 
     if(!application.reStarted) {
-        LaunchedEffect(lat, long) {
-            if (lat != -1.0 && long != -1.0) {
+        LaunchedEffect(lat, long, internet.value) {
+            Log.i("TAG", "GetWeatherDataByLoc: Checking internet status - ${internet.value}")
+            Log.i("TAG", "GetWeatherDataByLoc: Location - lat: $lat, long: $long")
+
+            if (internet.value && lat != -1.0 && long != -1.0) {
+                Log.i("TAG", "GetWeatherDataByLoc: Fetching weather data for $lat, $long")
                 viewModel.fetchWeatherData(lat, long)
+            } else {
+                Log.e("TAG", "GetWeatherDataByLoc: Conditions not met, skipping API call")
             }
         }
+
     }
+
 
     if(message.value == Response.Success && currentWeather.value != null && filteredWeather.value?.second != emptyList<HourlyDetails>() ){
         updateCurrent(currentWeather.value!!)

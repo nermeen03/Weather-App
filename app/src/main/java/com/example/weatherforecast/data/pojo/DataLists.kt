@@ -8,7 +8,7 @@ data class Location(
     val country: String,
     val lon: Double,
     val lat: Double,
-    val arabicName:String
+    var arabicName:String
 )
 
 

@@ -29,6 +29,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -65,6 +66,7 @@ import com.example.weatherforecast.view.utils.internet
 import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 
@@ -214,10 +216,8 @@ fun FavRow(
     function: () -> Unit
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val application = context.applicationContext as MyApplication
-    val favDetails = viewModel.favDetail.collectAsStateWithLifecycle()
-    val response = viewModel.response.collectAsStateWithLifecycle()
+    val detailResponse = viewModel.detailsResponse.collectAsStateWithLifecycle()
     val textValue = if (application.getCurrentLanguage(context) == "en")
         "${item.name}, ${item.country}"
     else
@@ -232,13 +232,32 @@ fun FavRow(
                 if (internet.value) {
                     function()
                 } else {
-                    navController.navigate(
-                        ScreenRoute.DetailsOfflineRoute.withArgs(
-                            item.lat,
-                            item.lon
-                        )
-                    )
+                    viewModel.getFavDetails(item.lon, item.lat)
+
+                    coroutineScope.launch {
+                        when (viewModel.detailsResponse.first()) {
+                            is Response.Success -> {
+                                navController.navigate(
+                                    ScreenRoute.DetailsOfflineRoute.withArgs(
+                                        item.lat,
+                                        item.lon
+                                    )
+                                )
+                            }
+
+                            is Response.Failure -> {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.no_offline_data_was_saved_for_this_location),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+
+                            Response.Loading -> Log.d("TAG", "FavRow: Waiting for response...")
+                        }
+                    }
                 }
+
             },
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
@@ -262,47 +281,26 @@ fun FavRow(
 
             Button(
                 onClick = {
-                    scope.launch {
-                        viewModel.deleteLocation(item.lat, item.lon)
-                        when (viewModel.response.value) {
-                            is Response.Success -> {
-                                coroutineScope.launch {
-                                    val result = snackBarHostState.showSnackbar(
-                                        message = context.getString(R.string.deleted_successfully),
-                                        actionLabel = context.getString(R.string.undo)
-                                    )
-                                    if (result == SnackbarResult.ActionPerformed) {
-                                        Log.i("TAG", "FavRow: Undo action triggered")
+                    viewModel.deleteLocation(item.lat, item.lon)
+                    coroutineScope.launch {
+                        val result = snackBarHostState.showSnackbar(
+                            message = context.getString(R.string.deleted_successfully),
+                            actionLabel = context.getString(R.string.undo),
+                            duration = SnackbarDuration.Long
+                        )
 
-                                        viewModel.getFavDetails(item.lon, item.lat)
-
-                                        when (response.value) {
-                                            is Response.Success -> {
-                                                Log.i("TAG", "FavRow: Re-inserting location after undo")
-                                                viewModel.insertLocation(item, favDetails.value!!)
-                                            }
-                                            is Response.Failure -> {
-                                                Log.e("TAG", "FavRow: Failed to fetch details, inserting without weather data")
-                                                viewModel.insertLocation(item)
-                                            }
-                                            Response.Loading -> Log.i("TAG", "FavRow: Waiting for response...")
-                                        }
-
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.inserted_successfully),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
+                        if (result == SnackbarResult.ActionPerformed) {
+                            viewModel.insertLocation(item)
+                        }else{
+                            viewModel.getFavDetails(item.lon, item.lat)
+                            when (viewModel.detailsResponse.first()) {
+                                is Response.Success -> {
+                                    viewModel.deleteLocationDetail(item.lat, item.lon)
                                 }
-                            }
-
-                            else -> {
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.couldn_t_be_removed),
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                is Response.Failure -> {
+                                    Log.d("TAG", "FavRow: no details")
+                                }
+                                Response.Loading -> Log.d("TAG", "FavRow: Waiting for response...")
                             }
                         }
                     }
@@ -315,7 +313,6 @@ fun FavRow(
             ) {
                 Text(stringResource(R.string.remove))
             }
-
         }
     }
 }

@@ -92,5 +92,7 @@
     <string name="undo">تراجع</string>
     <string name="no_internet_connection">لا يوجد اتصال بالإنترنت!</string>
     <string name="retry">إعادة المحاولة</string>
+    <string name="no_offline_data_was_saved_for_this_location">لم يتم حفظ أي بيانات غير متصلة لهذا الموقع</string>
+    <string name="offline_details_for_this_location_was_saved">تم حفظ تفاصيل غير متصلة لهذا الموقع</string>
 
 </resources>

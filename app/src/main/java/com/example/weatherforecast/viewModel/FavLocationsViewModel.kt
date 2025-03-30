@@ -31,9 +31,12 @@ import java.io.InputStreamReader
 
 class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRepository):ViewModel(){
 
-    private val mutableLocResponse = MutableStateFlow(Response.Loading as Response<*>)
-    private val mutableDetailsResponse = MutableStateFlow(Response.Loading as Response<*>)
 
+    private val mutableLocResponse = MutableStateFlow(Response.Loading as Response<*>)
+    val locResponse = mutableLocResponse.asStateFlow()
+
+    private val mutableDetailsResponse = MutableStateFlow(Response.Loading as Response<*>)
+    val detailsResponse = mutableDetailsResponse.asStateFlow()
 
     private val mutableResponse = MutableStateFlow(Response.Loading as Response<*>)
     val response = mutableResponse.asStateFlow()
@@ -61,32 +64,31 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
     val filteredCountries: StateFlow<List<CountriesListItem>> = _filteredCountries
 
      fun insertLocation(location: Location){
+         viewModelScope.launch(Dispatchers.IO + handle) {
+             try {
+                 val result = favLocationsRepository.insertFav(location)
+                 Log.d("ViewModel", "Insert result: $result")
+
+                 if (result > 0) {
+                     mutableLocResponse.value = Response.Success
+                 } else {
+                     mutableLocResponse.value = Response.Failure(Exception("Insert failed"))
+                 }
+                 Log.i("TAG", "insertLocation: result for it is ${mutableLocResponse.value}")
+             } catch (e: Exception) {
+                 Log.e("ViewModel", "Error inserting location", e)
+                 mutableLocResponse.value = Response.Failure(e)
+             }
+         }
+     }
+    fun insertLocation(favDetails: FavDetails){
        viewModelScope.launch(Dispatchers.IO+handle) {
-           val result = favLocationsRepository.insertFav(location)
+           val result = favLocationsRepository.insertFavDetail(favDetails)
            if (result > 0) {
-               mutableLocResponse.value = Response.Success
-           } else {
-               mutableLocResponse.value = Response.Failure(Exception("Insert failed"))
-           }
-           updateResponseState()
-       }
-    }
-    fun insertLocation(location: Location,favDetails: FavDetails){
-       viewModelScope.launch(Dispatchers.IO+handle) {
-           val result = favLocationsRepository.insertFav(location)
-           if (result > 0) {
-               mutableLocResponse.value = Response.Success
-           } else {
-               mutableLocResponse.value = Response.Failure(Exception("Insert failed"))
-           }
-           updateResponseState()
-           val result2 = favLocationsRepository.insertFavDetail(favDetails)
-           if (result2 > 0) {
                mutableDetailsResponse.value = Response.Success
            } else {
                mutableDetailsResponse.value = Response.Failure(Exception("Insert failed"))
            }
-           updateResponseState()
        }
     }
 
@@ -94,22 +96,23 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
     fun deleteLocation(lat: Double, lon: Double) {
         viewModelScope.launch(Dispatchers.IO + handle) {
             Log.i("DELETE", "Attempting to delete location: $lat, $lon")
-            val result2 = favLocationsRepository.deleteFavDetails(lat, lon)
-            if (result2 > 0) {
-                mutableDetailsResponse.value = Response.Success
-            } else {
-                mutableDetailsResponse.value = Response.Failure(Exception("Failed to delete details"))
-            }
-            updateResponseState()
             val result = favLocationsRepository.deleteFav(lat, lon)
             if (result > 0) {
                 mutableLocResponse.value = Response.Success
             } else {
                 mutableLocResponse.value = Response.Failure(Exception("Failed to delete location"))
             }
-            updateResponseState()
-
-            Log.i("DELETE", "Delete Results - Location: $result, Details: $result2")
+        }
+    }
+    fun deleteLocationDetail(lat: Double, lon: Double) {
+        viewModelScope.launch(Dispatchers.IO + handle) {
+            Log.i("DELETE", "Attempting to delete location details: $lat, $lon")
+            val result2 = favLocationsRepository.deleteFavDetails(lat, lon)
+            if (result2 > 0) {
+                mutableDetailsResponse.value = Response.Success
+            } else {
+                mutableDetailsResponse.value = Response.Failure(Exception("Failed to delete details"))
+            }
         }
     }
 
@@ -128,19 +131,16 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
         viewModelScope.launch(Dispatchers.IO) {
             favLocationsRepository.getFavDetail(lon, lat)
                 .catch { e ->
-                    mutableResponse.value = Response.Failure(e)
+                    mutableDetailsResponse.value = Response.Failure(e)
                 }
                 .distinctUntilChanged()
                 .collect { details ->
                     Log.i("TAG", "getFavDetails: $details")
                     mutableFavDetails.value = details
-                    mutableResponse.value = Response.Success
+                    mutableDetailsResponse.value = Response.Success
                 }
         }
     }
-
-
-
 
     fun getLocationName(lat: Double, lon: Double) {
         mutableResponse.value = Response.Loading
@@ -160,20 +160,6 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
         }
     }
 
-    private fun updateResponseState() {
-        val location = mutableLocResponse.value
-        val details = mutableDetailsResponse.value
-
-        mutableResponse.value = when {
-            location is Response.Success && details is Response.Success-> {
-                Log.i("TAG", "updateResponseState: both success")
-                Response.Success
-            }
-            location is Response.Failure -> location
-            details is Response.Failure -> details
-            else -> Response.Loading
-        }
-    }
 
 
     fun onMapReady(map: MapLibreMap, apiKey: String) {

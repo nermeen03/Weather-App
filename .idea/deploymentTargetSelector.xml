@@ -13,16 +13,19 @@
         </DropdownSelection>
         <DialogSelection />
       </SelectionState>
-      <SelectionState runConfigName="repoDelete_Location_IntForResult()">
+      <SelectionState runConfigName="daoGetLocation_LatLon_IntForResult()">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="FavLocationsRepositoryTest">
+      <SelectionState runConfigName="localDataSourceGetFavDetail_LatLon_IntForResult()">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="daoInsertLocation_Location_LongForResult()">
+      <SelectionState runConfigName="repoGetAlert_FlowListOfAlertData()">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="daoDeleteLocation_LatLon_IntForResult()">
+      <SelectionState runConfigName="viewModelInsertLocation_Alert_Success()">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="viewModelInsertLocation_Location_Success()">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>

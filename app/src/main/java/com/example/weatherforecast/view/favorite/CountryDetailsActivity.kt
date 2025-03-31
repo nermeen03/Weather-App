@@ -1,5 +1,6 @@
 package com.example.weatherforecast.view.favorite
 
+import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -30,6 +31,7 @@ import com.example.weatherforecast.data.repo.DailyDataRepository
 import com.example.weatherforecast.data.repo.FavLocationsRepository
 import com.example.weatherforecast.view.GetWeatherDataByLoc
 import com.example.weatherforecast.view.NoInternetGif
+import com.example.weatherforecast.view.RetryImage
 import com.example.weatherforecast.view.WaitingGif
 import com.example.weatherforecast.view.WeatherSections
 import com.example.weatherforecast.view.utils.internet
@@ -59,7 +61,13 @@ fun DetailsScreen(lat:Double,lon:Double,navController: NavHostController) {
 
     val context = LocalContext.current
     val viewModel: DailyDataViewModel =
-        viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
+        viewModel(
+            factory = DailyDataViewModelFactory(
+                DailyDataRepository.getRepository(
+                    RetrofitHelper.retrofitInstance.create(ApiService::class.java)
+                )
+            )
+        )
 
     isInternetAvailable(context)
     val internet = internet.collectAsState()
@@ -67,7 +75,7 @@ fun DetailsScreen(lat:Double,lon:Double,navController: NavHostController) {
     val response by viewModel.response.collectAsState()
     val application = context.applicationContext as MyApplication
 
-    if(internet.value && !application.reStarted) {
+    if (internet.value && !application.reStarted) {
         GetWeatherDataByLoc(
             updateCurrent = { newDetails ->
                 currentDetails = newDetails
@@ -93,90 +101,93 @@ fun DetailsScreen(lat:Double,lon:Double,navController: NavHostController) {
                 weather = details.weather
                 location = "${details.place.name}, ${details.place.code}"
                 state = details.state
-                todayDetails = DailyDetails(details.pressure, details.humidity, details.speed, details.cloud)
+                todayDetails =
+                    DailyDetails(details.pressure, details.humidity, details.speed, details.cloud)
             }
         }
     }
 
-    if (internet.value) {
-            when {
-                response is Response.Loading -> {
-                    WaitingGif()
-                }
+    if (internet.value&& !application.reStarted) {
+        when {
+            response is Response.Loading -> {
+                WaitingGif()
+            }
 
-                response is Response.Success && currentDetails != null -> {
-                    WeatherSections(
-                        viewModel,
-                        context,
-                        weather,
-                        feelLike,
-                        state,
-                        temp,
-                        location,
-                        hourlyList,
-                        todayDetails,
-                        daysList,
-                        arabicData
-                    )
-                    if(previousRoute == "map"){
-                        val favLocationsViewModel: FavLocationsViewModel = viewModel(
-                            factory = FavLocationsViewModel.FavLocationsViewModelFactory(
-                                FavLocationsRepository.getRepository(
-                                    FavLocationsLocalDataSource(
-                                        FavLocationsDataBase.getInstance(context).getFavLocationsDao()
-                                    ),
-                                    FavLocationsRemoteDataSource(
-                                        RetrofitHelper.retrofitInstance.create(
-                                            ApiService::class.java
-                                        )
+            response is Response.Success && currentDetails != null -> {
+                WeatherSections(
+                    viewModel,
+                    context,
+                    lat, lon,
+                    weather,
+                    feelLike,
+                    state,
+                    temp,
+                    location,
+                    hourlyList,
+                    todayDetails,
+                    daysList,
+                    arabicData
+                )
+                if (previousRoute == "map") {
+                    val favLocationsViewModel: FavLocationsViewModel = viewModel(
+                        factory = FavLocationsViewModel.FavLocationsViewModelFactory(
+                            FavLocationsRepository.getRepository(
+                                FavLocationsLocalDataSource(
+                                    FavLocationsDataBase.getInstance(context).getFavLocationsDao()
+                                ),
+                                FavLocationsRemoteDataSource(
+                                    RetrofitHelper.retrofitInstance.create(
+                                        ApiService::class.java
                                     )
                                 )
                             )
                         )
-                        favLocationsViewModel.insertLocation(FavDetails(
-                            currentWeather = currentDetails!!,
-                            hourlyWeather = hourlyList,
-                            dailyWeather = daysList,
-                            lat = lat,
-                            lon = lon,
-                            location = location,
-                            arabicData = arabicData?.ifEmpty { listOf("No Data") } ?: listOf(
-                                location,
-                                currentDetails!!.weather
-                            )
-                        ))
-                    }
-                }
-
-                response is Response.Failure -> {
-                    Log.d("TAG", "DetailsScreen: error")
-                }
-
-                else -> {
-                    WaitingGif() // errorGif
+                    )
+                    favLocationsViewModel.insertLocation(FavDetails(
+                        currentWeather = currentDetails!!,
+                        hourlyWeather = hourlyList,
+                        dailyWeather = daysList,
+                        lat = lat,
+                        lon = lon,
+                        location = location,
+                        arabicData = arabicData?.ifEmpty { listOf("No Data") } ?: listOf(
+                            location,
+                            currentDetails!!.weather
+                        )
+                    ))
                 }
             }
-        } else if (internet.value && application.reStarted) {
-            WeatherSections(
-                viewModel,
-                context,
-                weather,
-                feelLike,
-                state,
-                temp,
-                location,
-                hourlyList,
-                todayDetails,
-                daysList,
-                arabicData
-            )
-        } else {
-            NoInternetGif()
+
+            response is Response.Failure -> {
+                Log.d("TAG", "DetailsScreen: error")
+                RetryImage(viewModel, context, lat, lon)
+            }
         }
+    } else if (internet.value && application.reStarted) {
+        WeatherSections(
+            viewModel,
+            context,
+            lat, lon,
+            weather,
+            feelLike,
+            state,
+            temp,
+            location,
+            hourlyList,
+            todayDetails,
+            daysList,
+            arabicData
+        )
+    }
+
+    else {
+        NoInternetGif()
+    }
 
 
 }
 
+@SuppressLint("CoroutineCreationDuringComposition")
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DetailsScreenOffline(
@@ -194,7 +205,7 @@ fun DetailsScreenOffline(
         viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
 
     val favDetails = viewModel.favDetail.collectAsStateWithLifecycle()
-    val response = viewModel.response.collectAsStateWithLifecycle()
+    val response = viewModel.detailsResponse.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.getFavDetails(lon, lat)
@@ -209,7 +220,8 @@ fun DetailsScreenOffline(
         val state = details.currentWeather.state
         val todayDetails = DailyDetails(
             details.currentWeather.pressure, details.currentWeather.humidity,
-            details.currentWeather.speed, details.currentWeather.cloud)
+            details.currentWeather.speed, details.currentWeather.cloud
+        )
         val hourlyList = details.hourlyWeather
         val daysList = details.dailyWeather
         val arabicData = details.arabicData
@@ -218,11 +230,23 @@ fun DetailsScreenOffline(
         Log.d("TAG", "Daily List Size: ${daysList.size}")
         Log.d("DetailsScreenOffline", "Daily List Size: ${daysList.size}")
 
-        WeatherSections(dataViewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
-
+        WeatherSections(
+            dataViewModel,
+            context,
+            lat,
+            lon,
+            weather,
+            feelLike,
+            state,
+            temp,
+            location,
+            hourlyList,
+            todayDetails,
+            daysList,
+            arabicData
+        )
+    } else {
+        Log.d("TAG", "Waiting for response or favDetails is null...")
     }
-
-
-
 
 }

@@ -7,6 +7,7 @@ import android.os.Build.VERSION.SDK_INT
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -36,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -113,7 +116,7 @@ fun NoInternetGif() {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun TopBar(viewModel: DailyDataViewModel, context: Context) {
+fun TopBar(viewModel: DailyDataViewModel, context: Context,lat: Double,long: Double) {
     Row(
         modifier = Modifier
             .fillMaxWidth(),
@@ -131,7 +134,7 @@ fun TopBar(viewModel: DailyDataViewModel, context: Context) {
             textAlign = TextAlign.Center
         )
         IconButton(
-            onClick = { refreshWeather(viewModel, context) },
+            onClick = { refreshWeather(viewModel, context,lat,long) },
             modifier = Modifier.weight(1f)
         ) {
             Icon(
@@ -495,13 +498,7 @@ fun GetWeatherDataByLoc(
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-fun refreshWeather(viewModel: DailyDataViewModel,context: Context) {
-    val application = context.applicationContext as MyApplication
-
-    val currentLocation =  application.currentLocation
-    val lat = currentLocation.value.first
-    val long = currentLocation.value.second
-
+fun refreshWeather(viewModel: DailyDataViewModel,context: Context,lat: Double,long: Double) {
     Toast.makeText(context, context.getString(R.string.loading), Toast.LENGTH_SHORT).show()
     viewModel.fetchWeatherData(lat,long)
 }
@@ -511,6 +508,7 @@ fun refreshWeather(viewModel: DailyDataViewModel,context: Context) {
 fun WeatherSections(
     viewModel: DailyDataViewModel,
     context: Context,
+    lat: Double,long: Double,
     weather: String,
     feelLike: Double,
     state: String,
@@ -520,15 +518,42 @@ fun WeatherSections(
     todayDetails: DailyDetails?,
     daysList: List<HourlyDetails>,
     arabicData:List<String>?){
+
     LazyColumn(
             Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        item { TopBar(viewModel, context) }
+        item { TopBar(viewModel, context,lat,long) }
         item { TopWeatherSection(weather, feelLike, state, arabicData?.get(1) ?: weather) }
         item { WeatherLocationSection(temp, location, arabicData?.get(0) ?: location) }
         item { HourlyWeatherSection(hourlyList) }
         item { TodayDetailsSection(todayDetails) }
         item { DailyWeatherSection(daysList) }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@SuppressLint("ResourceType")
+@Composable
+fun RetryImage(
+    viewModel: DailyDataViewModel,
+    context: Context,
+    lat: Double,
+    long: Double
+) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.raw.error),
+            contentDescription = "Displayed Image",
+            modifier = Modifier.size(200.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { refreshWeather(viewModel, context, lat, long) }) {
+            Text(text = "Retry")
+        }
     }
 }

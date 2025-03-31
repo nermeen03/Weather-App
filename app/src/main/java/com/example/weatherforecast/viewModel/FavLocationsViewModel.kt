@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.launch
 import org.maplibre.android.camera.CameraPosition
@@ -127,16 +128,23 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
     fun getFavDetails(lon: Double, lat: Double) {
         viewModelScope.launch(Dispatchers.IO) {
             favLocationsRepository.getFavDetail(lon, lat)
+                .onStart {
+                    Log.d("TAG", "Fetching details...")
+                    mutableDetailsResponse.value = Response.Loading
+                }
                 .catch { e ->
+                    Log.e("TAG", "Error fetching details: ${e.message}")
                     mutableDetailsResponse.value = Response.Failure(e)
                 }
-                .distinctUntilChanged()
                 .collect { details ->
+                    Log.d("TAG", "Data retrieved successfully")
                     mutableFavDetails.value = details
                     mutableDetailsResponse.value = Response.Success
                 }
         }
     }
+
+
 
     fun getLocationName(lat: Double, lon: Double) {
         mutableResponse.value = Response.Loading

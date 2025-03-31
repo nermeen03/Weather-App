@@ -3,7 +3,6 @@ package com.example.weatherforecast.view.alert
 import android.content.Context
 import android.media.MediaPlayer
 import android.os.Bundle
-import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent

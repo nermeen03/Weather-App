@@ -26,11 +26,7 @@ fun SetUpNavHost(navController: NavHostController) {
     ) {
         composable(ScreenRoute.HomeScreenRoute.route) { MainScreen() }
         composable(ScreenRoute.FavScreenRoute.route){
-            FavScreen(navController, navToDetails = { lat, lon ->
-                navController.navigate("details/$lat/$lon") {
-                    launchSingleTop = true
-                }
-            })
+            FavScreen(navController)
         }
         composable(ScreenRoute.MapScreenRoute.route) { MapScreen(navController) }
         composable("details/{lat}/{lon}") { backStackEntry ->

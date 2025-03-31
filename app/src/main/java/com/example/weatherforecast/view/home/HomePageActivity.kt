@@ -1,5 +1,6 @@
 package com.example.weatherforecast.view.home
 
+import android.annotation.SuppressLint
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
@@ -23,6 +24,7 @@ import com.example.weatherforecast.data.remote.RetrofitHelper
 import com.example.weatherforecast.data.repo.DailyDataRepository
 import com.example.weatherforecast.view.GetWeatherData
 import com.example.weatherforecast.view.NoInternetGif
+import com.example.weatherforecast.view.RetryImage
 import com.example.weatherforecast.view.WaitingGif
 import com.example.weatherforecast.view.WeatherSections
 import com.example.weatherforecast.view.utils.internet
@@ -31,6 +33,7 @@ import com.example.weatherforecast.viewModel.DailyDataViewModel
 import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
 import kotlinx.coroutines.delay
 
+@SuppressLint("StateFlowValueCalledInComposition")
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MainScreen() {
@@ -54,6 +57,8 @@ fun MainScreen() {
 
     val response by viewModel.response.collectAsStateWithLifecycle()
     val application = context.applicationContext as MyApplication
+    val lat = application.currentLocation.value.first
+    val lon = application.currentLocation.value.second
 
     if(!application.reStarted && internet.value) {
         GetWeatherData(
@@ -113,18 +118,18 @@ fun MainScreen() {
                 WaitingGif()
             }
             response is Response.Success && currentDetails != null -> {
-                WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
+                WeatherSections(viewModel,context,lat,lon,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
             }
             response is Response.Failure && savedWeather!=null&& savedHourlyList.isNotEmpty()&&savedDailyList.isNotEmpty() -> {
-                WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
+                WeatherSections(viewModel,context,lat,lon,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
             }
             else -> {
-                WaitingGif() // errorGif
+                RetryImage(viewModel,context,lat,lon)
             }
         }
     }else if(internet.value && application.reStarted){
 
-        WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
+        WeatherSections(viewModel,context,lat,lon,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
     }
     else if(!internet.value && savedWeather!=null && savedDailyList.isNotEmpty()){
             var isDataLoaded by remember { mutableStateOf(false) }
@@ -140,6 +145,7 @@ fun MainScreen() {
                 WeatherSections(
                     viewModel,
                     context,
+                    lat,lon,
                     weather,
                     feelLike,
                     state,

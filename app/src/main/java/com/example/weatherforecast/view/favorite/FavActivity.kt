@@ -66,15 +66,14 @@ import com.example.weatherforecast.view.utils.internet
 import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun FavScreen(navController: NavHostController,
-              navToDetails: (lat: Double, lon: Double) -> Unit,
-              ) {
+fun FavScreen(navController: NavHostController) {
     val context = LocalContext.current
     val viewModel: FavLocationsViewModel = viewModel(
         factory = FavLocationsViewModel.FavLocationsViewModelFactory(
@@ -101,7 +100,6 @@ fun FavScreen(navController: NavHostController,
                     isInternetAvailable(context)
                     if (internet.value) {
                         navController.navigate(ScreenRoute.MapScreenRoute.route) {
-                            popUpTo(ScreenRoute.FavScreenRoute.route) { inclusive = true }
                             launchSingleTop = true
                         }
                     }
@@ -115,7 +113,6 @@ fun FavScreen(navController: NavHostController,
                                 isInternetAvailable(context)
                                 if (internet.value) {
                                     navController.navigate(ScreenRoute.MapScreenRoute.route) {
-                                        popUpTo(ScreenRoute.FavScreenRoute.route) { inclusive = true }
                                         launchSingleTop = true
                                     }
                                 }
@@ -155,7 +152,6 @@ fun FavScreen(navController: NavHostController,
                     FavList(
                         list = favList,
                         viewModel = viewModel,
-                        navToDetails = navToDetails,
                         snackBarHostState = snackBarHostState,
                         coroutineScope = coroutineScope,
                         navController = navController
@@ -181,7 +177,6 @@ fun NoFav() {
 fun FavList(
     list: List<Location>,
     viewModel: FavLocationsViewModel,
-    navToDetails: (lat: Double, lon: Double) -> Unit,
     snackBarHostState: SnackbarHostState,
     coroutineScope: CoroutineScope,
     navController: NavHostController
@@ -197,11 +192,7 @@ fun FavList(
                 snackBarHostState = snackBarHostState,
                 coroutineScope = coroutineScope,
                 navController = navController
-            ) {
-                val lat = list[index].lat
-                val lon = list[index].lon
-                navToDetails(lat, lon)
-            }
+            )
         }
     }
 }
@@ -215,16 +206,13 @@ fun FavRow(
     snackBarHostState: SnackbarHostState,
     coroutineScope: CoroutineScope,
     navController: NavHostController,
-    function: () -> Unit
 ) {
     val context = LocalContext.current
     val application = context.applicationContext as MyApplication
-    val detailResponse = viewModel.detailsResponse.collectAsStateWithLifecycle()
     val textValue = if (application.getCurrentLanguage(context) == "en")
         "${item.name}, ${item.country}"
     else
         item.arabicName
-
     Card(
         modifier = Modifier
             .padding(8.dp)
@@ -232,31 +220,34 @@ fun FavRow(
             .clickable {
                 isInternetAvailable(context)
                 if (internet.value) {
-                    function()
+                    navController.navigate("details/${item.lat}/${item.lon}") {
+                        launchSingleTop = true
+                    }
                 } else {
                     viewModel.getFavDetails(item.lon, item.lat)
 
                     coroutineScope.launch {
-                        when (viewModel.detailsResponse.first()) {
-                            is Response.Success -> {
-                                navController.navigate(ScreenRoute.DetailsOfflineRoute.withArgs(
-                                    item.lat,
-                                    item.lon
-                                )) {
-                                    popUpTo(ScreenRoute.FavScreenRoute.route) { inclusive = true }
-                                    launchSingleTop = true
+                        viewModel.detailsResponse.collectLatest { response ->
+                            when (response) {
+                                is Response.Success -> {
+                                    navController.navigate(
+                                        ScreenRoute.DetailsOfflineRoute.withArgs(item.lat, item.lon)
+                                    ) {
+                                        popUpTo(ScreenRoute.FavScreenRoute.route) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
                                 }
-                            }
 
-                            is Response.Failure -> {
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.no_offline_data_was_saved_for_this_location),
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
+                                is Response.Failure -> {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.no_offline_data_was_saved_for_this_location),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
 
-                            Response.Loading -> Log.d("TAG", "FavRow: Waiting for response...")
+                                Response.Loading -> Log.d("TAG", "FavRow: Waiting for response...")
+                            }
                         }
                     }
                 }

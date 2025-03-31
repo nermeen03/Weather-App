@@ -58,7 +58,6 @@ import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource
 import com.example.weatherforecast.data.remote.RetrofitHelper
 import com.example.weatherforecast.data.repo.FavLocationsRepository
-import com.example.weatherforecast.view.navigation.ScreenRoute
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
@@ -332,7 +331,6 @@ fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsVi
                         ).show()
                         coroutineScope.launch {
                             navController.navigate("details/${location.lat}/${location.lon}") {
-                                popUpTo(ScreenRoute.FavScreenRoute.route) { inclusive = true }
                                 launchSingleTop = true
                             }
                         }

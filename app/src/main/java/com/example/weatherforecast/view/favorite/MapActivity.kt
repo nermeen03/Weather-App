@@ -32,7 +32,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,24 +51,14 @@ import com.example.weatherforecast.R
 import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.local.favorite.FavLocationsDataBase
 import com.example.weatherforecast.data.local.favorite.FavLocationsLocalDataSource
-import com.example.weatherforecast.data.pojo.DailyDetails
-import com.example.weatherforecast.data.pojo.FavDetails
-import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.pojo.LocalNames
 import com.example.weatherforecast.data.pojo.Location
 import com.example.weatherforecast.data.pojo.NameResponseItem
-import com.example.weatherforecast.data.pojo.WeatherDetails
 import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource
 import com.example.weatherforecast.data.remote.RetrofitHelper
-import com.example.weatherforecast.data.repo.DailyDataRepository
 import com.example.weatherforecast.data.repo.FavLocationsRepository
-import com.example.weatherforecast.view.GetWeatherDataByLoc
 import com.example.weatherforecast.view.navigation.ScreenRoute
-import com.example.weatherforecast.view.utils.internet
-import com.example.weatherforecast.view.utils.isInternetAvailable
-import com.example.weatherforecast.viewModel.DailyDataViewModel
-import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
@@ -94,10 +83,6 @@ fun MapScreen(navController:NavHostController) {
             FavLocationsRemoteDataSource(RetrofitHelper.retrofitInstance.create(ApiService::class.java))
         )
     ))
-
-    val detailViewModel: DailyDataViewModel =
-        viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
-
 
     LaunchedEffect(Unit) {
         favViewModel.loadCountries(context)
@@ -208,7 +193,7 @@ fun MapScreen(navController:NavHostController) {
                 contentAlignment = Alignment.BottomCenter
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    SelectedLocationByName(locationSelected!!,favViewModel,detailViewModel,previousRoute,navController)
+                    SelectedLocationByName(locationSelected!!,favViewModel,previousRoute,navController)
                 }
             }
         }
@@ -230,7 +215,7 @@ fun MapScreen(navController:NavHostController) {
                     when (responseState) {
                         is Response.Success -> {
                             if (locationName != null) {
-                                SelectedLocationByName(locationName!!, favViewModel,detailViewModel,previousRoute,navController)
+                                SelectedLocationByName(locationName!!, favViewModel,previousRoute,navController)
                             } else {
                                 SelectedLocation(location.latitude, location.longitude)
                             }
@@ -259,10 +244,6 @@ fun MapScreen(navController:NavHostController) {
         }
     }
 
-
-
-
-
 @Composable
 fun SelectedLocation(lat: Double, long: Double) {
     Box(
@@ -283,7 +264,7 @@ fun SelectedLocation(lat: Double, long: Double) {
 @SuppressLint("CoroutineCreationDuringComposition")
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsViewModel,detailViewModel:DailyDataViewModel,route:String?,navController: NavHostController) {
+fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsViewModel,route:String?,navController: NavHostController) {
     val context = LocalContext.current
     val application = context.applicationContext as MyApplication
     var showDetails by remember { mutableStateOf(false) }
@@ -332,6 +313,7 @@ fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsVi
                 Text(stringResource(R.string.save_location))
             }
             if (showDetails) {
+
                 val locationDetails = Location(
                     name = location.name,
                     country = location.country,
@@ -348,14 +330,12 @@ fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsVi
                             context.getString(R.string.inserted_successfully),
                             Toast.LENGTH_SHORT
                         ).show()
-                        /*SaveLocation(location,locationDetails,detailViewModel,viewModel)*/
                         coroutineScope.launch {
-                            navController.navigate(
-                                ScreenRoute.DetailsOfflineRoute.withArgs(
-                                    location.lat,
-                                    location.lon
-                                )
-                            )                        }
+                            navController.navigate("details/${location.lat}/${location.lon}") {
+                                popUpTo(ScreenRoute.FavScreenRoute.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
                     }
                     is Response.Failure -> {
                         Log.e("TAG", "FavRow: Failed to fetch details, inserting without weather data")
@@ -368,97 +348,6 @@ fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsVi
                     Response.Loading -> Log.d("TAG", "FavRow: Waiting for response...")
                 }
             }
-        }
-    }
-}
-
-@Composable
-@RequiresApi(Build.VERSION_CODES.O)
-fun SaveLocation(
-    loc: NameResponseItem,
-    locationDetails:Location,
-    viewModel: DailyDataViewModel,
-    favViewModel: FavLocationsViewModel
-) {
-
-    Log.i("TAG", "SaveLocation: searched loc is ${loc.lon}, ${loc.lat}")
-    var temp by remember { mutableDoubleStateOf(0.0) }
-    var feelLike by remember { mutableDoubleStateOf(0.0) }
-    var weather by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var state by remember { mutableStateOf("") }
-    var todayDetails by remember { mutableStateOf<DailyDetails?>(null) }
-    var currentDetails by remember { mutableStateOf<WeatherDetails?>(null) }
-    var hourlyList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
-    var daysList by remember { mutableStateOf<List<HourlyDetails>>(emptyList()) }
-    var arabicData by remember { mutableStateOf<List<String>?>(null) }
-
-    val context = LocalContext.current
-    isInternetAvailable(context)
-    val internet = internet.collectAsState()
-
-    val response by viewModel.response.collectAsState()
-    val detailResponse by favViewModel.detailsResponse.collectAsStateWithLifecycle()
-
-    if (internet.value) {
-        Log.i("TAG", "SaveLocation: Calling GetWeatherDataByLoc()")
-        GetWeatherDataByLoc(
-            updateCurrent = { newDetails ->
-                Log.i("TAG", "SaveLocation: Got new weather data")
-                currentDetails = newDetails
-            },
-            updateList = { hourly, days ->
-                hourlyList = hourly
-                daysList = days
-            },
-            long = 10.0, lat = 10.0,
-            arabicData = { dataArray ->
-                arabicData = dataArray
-                Log.i("TAG", "SaveLocation: Arabic data received: $dataArray")
-                MyApplication.saveArabicData(dataArray)
-            },
-            viewModel = viewModel
-        )
-    }
-
-
-
-    LaunchedEffect(response) {
-        if (response is Response.Success && currentDetails != null) {
-            Log.i("TAG", "MainScreen: Updating UI after success")
-            currentDetails?.let { details ->
-                temp = details.temp
-                feelLike = details.feelLike
-                weather = details.weather
-                location = "${details.place.name}, ${details.place.code}"
-                state = details.state
-                todayDetails = DailyDetails(details.pressure, details.humidity, details.speed, details.cloud)
-            }
-        }else if (response is Response.Failure) {
-            Log.e("TAG", "SaveLocation: API Failed - ${(response as Response.Failure).error}")
-        }
-    }
-
-    if (internet.value) {
-        Log.i("TAG", "MainScreen: Response status - $response")
-
-        if (response is Response.Success && currentDetails != null) {
-            Log.i("TAG", "SaveLocation: Ready to save data")
-
-            favViewModel.insertLocation(
-                FavDetails(
-                    currentWeather = currentDetails!!,
-                    hourlyWeather = hourlyList,
-                    dailyWeather = daysList,
-                    lat = loc.lat,
-                    lon = loc.lon,
-                    location = "${loc.name}, ${loc.country}",
-                    arabicData = arabicData?.ifEmpty { listOf("No Data") } ?: listOf(loc.name, currentDetails!!.weather)
-                )
-            )
-            Log.i("TAG", "SaveLocation: response is $detailResponse")
-        } else {
-            Log.i("TAG", "SaveLocation: Data is still loading")
         }
     }
 }

@@ -165,7 +165,6 @@ fun SettingsScreen(navController: NavHostController) {
                         selected = Locale.getDefault().language == langCode,
                         onClick = {
                             application.setLanguage(context, langCode)
-                            Log.i("TAG", "SettingsScreen: $langCode")
                             application.reStarted = true
                             val intent = Intent(context, MainActivity::class.java)
                             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

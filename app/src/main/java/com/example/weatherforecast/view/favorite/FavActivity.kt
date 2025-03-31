@@ -101,6 +101,7 @@ fun FavScreen(navController: NavHostController,
                     isInternetAvailable(context)
                     if (internet.value) {
                         navController.navigate(ScreenRoute.MapScreenRoute.route) {
+                            popUpTo(ScreenRoute.FavScreenRoute.route) { inclusive = true }
                             launchSingleTop = true
                         }
                     }
@@ -114,6 +115,7 @@ fun FavScreen(navController: NavHostController,
                                 isInternetAvailable(context)
                                 if (internet.value) {
                                     navController.navigate(ScreenRoute.MapScreenRoute.route) {
+                                        popUpTo(ScreenRoute.FavScreenRoute.route) { inclusive = true }
                                         launchSingleTop = true
                                     }
                                 }
@@ -237,12 +239,13 @@ fun FavRow(
                     coroutineScope.launch {
                         when (viewModel.detailsResponse.first()) {
                             is Response.Success -> {
-                                navController.navigate(
-                                    ScreenRoute.DetailsOfflineRoute.withArgs(
-                                        item.lat,
-                                        item.lon
-                                    )
-                                )
+                                navController.navigate(ScreenRoute.DetailsOfflineRoute.withArgs(
+                                    item.lat,
+                                    item.lon
+                                )) {
+                                    popUpTo(ScreenRoute.FavScreenRoute.route) { inclusive = true }
+                                    launchSingleTop = true
+                                }
                             }
 
                             is Response.Failure -> {

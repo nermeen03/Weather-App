@@ -14,11 +14,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.example.weatherforecast.MyApplication
 import com.example.weatherforecast.data.Response
 import com.example.weatherforecast.data.local.favorite.FavLocationsDataBase
 import com.example.weatherforecast.data.local.favorite.FavLocationsLocalDataSource
 import com.example.weatherforecast.data.pojo.DailyDetails
+import com.example.weatherforecast.data.pojo.FavDetails
 import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.pojo.WeatherDetails
 import com.example.weatherforecast.data.remote.ApiService
@@ -39,8 +41,11 @@ import com.example.weatherforecast.viewModel.FavLocationsViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun DetailsScreen(lat:Double,lon:Double) {
-    
+fun DetailsScreen(lat:Double,lon:Double,navController: NavHostController) {
+
+    val previousEntry = navController.previousBackStackEntry
+    val previousRoute = previousEntry?.destination?.route
+
     var temp by remember { mutableDoubleStateOf(0.0) }
     var feelLike by remember { mutableDoubleStateOf(0.0) }
     var weather by remember { mutableStateOf("") }
@@ -82,7 +87,6 @@ fun DetailsScreen(lat:Double,lon:Double) {
 
     LaunchedEffect(response) {
         if (response is Response.Success && currentDetails != null && !application.reStarted) {
-            Log.i("TAG", "MainScreen: Updating UI after success")
             currentDetails?.let { details ->
                 temp = details.temp
                 feelLike = details.feelLike
@@ -95,36 +99,81 @@ fun DetailsScreen(lat:Double,lon:Double) {
     }
 
     if (internet.value) {
-        Log.i("TAG", "MainScreen: Response status - $response")
+            when {
+                response is Response.Loading -> {
+                    WaitingGif()
+                }
 
-        when {
-            response is Response.Loading -> {
-                Log.i("TAG", "MainScreen: Loading screen")
-                WaitingGif()
-            }
+                response is Response.Success && currentDetails != null -> {
+                    WeatherSections(
+                        viewModel,
+                        context,
+                        weather,
+                        feelLike,
+                        state,
+                        temp,
+                        location,
+                        hourlyList,
+                        todayDetails,
+                        daysList,
+                        arabicData
+                    )
+                    if(previousRoute == "map"){
+                        val favLocationsViewModel: FavLocationsViewModel = viewModel(
+                            factory = FavLocationsViewModel.FavLocationsViewModelFactory(
+                                FavLocationsRepository.getRepository(
+                                    FavLocationsLocalDataSource(
+                                        FavLocationsDataBase.getInstance(context).getFavLocationsDao()
+                                    ),
+                                    FavLocationsRemoteDataSource(
+                                        RetrofitHelper.retrofitInstance.create(
+                                            ApiService::class.java
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                        favLocationsViewModel.insertLocation(FavDetails(
+                            currentWeather = currentDetails!!,
+                            hourlyWeather = hourlyList,
+                            dailyWeather = daysList,
+                            lat = lat,
+                            lon = lon,
+                            location = location,
+                            arabicData = arabicData?.ifEmpty { listOf("No Data") } ?: listOf(
+                                location,
+                                currentDetails!!.weather
+                            )
+                        ))
+                    }
+                }
 
-            response is Response.Success && currentDetails != null -> {
-                Log.i("TAG", "MainScreen: Displaying weather data")
-                WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
-            }
+                response is Response.Failure -> {
+                    Log.d("TAG", "DetailsScreen: error")
+                }
 
-            response is Response.Failure  -> {
-                Log.d("TAG", "DetailsScreen: error")
+                else -> {
+                    WaitingGif() // errorGif
+                }
             }
-
-            else -> {
-                Log.i("TAG", "MainScreen: Waiting for data to update")
-                WaitingGif() // errorGif
-            }
+        } else if (internet.value && application.reStarted) {
+            WeatherSections(
+                viewModel,
+                context,
+                weather,
+                feelLike,
+                state,
+                temp,
+                location,
+                hourlyList,
+                todayDetails,
+                daysList,
+                arabicData
+            )
+        } else {
+            NoInternetGif()
         }
-    }
 
-    else if(internet.value && application.reStarted){
-        WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
-    }
-    else{
-        NoInternetGif()
-    }
 
 }
 

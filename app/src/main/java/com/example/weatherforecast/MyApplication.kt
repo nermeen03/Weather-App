@@ -24,10 +24,13 @@ class MyApplication : Application() {
     val location: StateFlow<String> = _mutableLocation.asStateFlow()
     private val _mutableCurrentLocation = MutableStateFlow(Pair(-1.0,-1.0))
     val currentLocation: StateFlow<Pair<Double, Double>> = _mutableCurrentLocation.asStateFlow()
+    private val _mutableCurrentLocationName = MutableStateFlow("")
+    val currentLocationName: StateFlow<String> = _mutableCurrentLocationName.asStateFlow()
     private val _mutableTemp = MutableStateFlow("K")
     val temp: StateFlow<String> = _mutableTemp.asStateFlow()
     private val _mutableWind = MutableStateFlow("m/s")
     val wind: StateFlow<String> = _mutableWind.asStateFlow()
+
 
     var reStarted = false
 
@@ -42,8 +45,6 @@ class MyApplication : Application() {
         val savedLang = sharedPreferences.getString("Language", "en")
         return savedLang?:"en"
     }
-
-
     fun setLanguage(context: Context, langCode: String) {
         val locale = Locale(langCode)
         Locale.setDefault(locale)
@@ -56,22 +57,21 @@ class MyApplication : Application() {
         saveLanguagePreference(context, langCode)
 
     }
+    fun updateLocationName(newName: String) {
+        _mutableCurrentLocationName.value = newName
+    }
 
 
     fun setLocation(lang: String) {
         _mutableLocation.value = lang
     }
     fun setCurrentLocation(loc: Pair<Double, Double>) {
-        Log.i("TAG", "setCurrentLocation: Current -> ${_mutableCurrentLocation.value}, New -> $loc")
-
         if (_mutableCurrentLocation.value != loc) {
             _mutableCurrentLocation.value = loc
-            Log.i("TAG", "setCurrentLocation: Updated to -> ${_mutableCurrentLocation.value}")
         } else {
-            Log.i("TAG", "setCurrentLocation: No change in location")
+            Log.d("TAG", "setCurrentLocation: No change in location")
         }
     }
-
 
     fun setTemp(str: String) {
         _mutableTemp.value = str
@@ -145,8 +145,6 @@ class MyApplication : Application() {
         val arabicFormat = SimpleDateFormat("dd MMMM yyyy", locale)
         return convertNumbersInString(arabicFormat.format(parsedDate))
     }
-
-
     fun convertDayToArabic(day:String):String{
         if (Locale.getDefault().language == "en") {
             return day
@@ -162,7 +160,6 @@ class MyApplication : Application() {
             else -> "غدا"
         }
     }
-
     fun convertTemperature(kelvin: Double): String? {
         val result = when (_mutableTemp.value) {
             "Celsius", "C", "°م" -> kelvin - 273.15
@@ -177,7 +174,6 @@ class MyApplication : Application() {
             convertToArabicNumbers(formattedResult)
         }
     }
-
 
     fun translateChar(): String {
         if(Locale.getDefault().language == "en"){
@@ -194,7 +190,6 @@ class MyApplication : Application() {
         }
         return result
     }
-
     fun translateSpeedChar(): String {
         if(Locale.getDefault().language == "en"){
             return _mutableWind.value

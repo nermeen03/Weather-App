@@ -74,7 +74,6 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
                  } else {
                      mutableLocResponse.value = Response.Failure(Exception("Insert failed"))
                  }
-                 Log.i("TAG", "insertLocation: result for it is ${mutableLocResponse.value}")
              } catch (e: Exception) {
                  Log.e("ViewModel", "Error inserting location", e)
                  mutableLocResponse.value = Response.Failure(e)
@@ -95,7 +94,6 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
 
     fun deleteLocation(lat: Double, lon: Double) {
         viewModelScope.launch(Dispatchers.IO + handle) {
-            Log.i("DELETE", "Attempting to delete location: $lat, $lon")
             val result = favLocationsRepository.deleteFav(lat, lon)
             if (result > 0) {
                 mutableLocResponse.value = Response.Success
@@ -106,7 +104,6 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
     }
     fun deleteLocationDetail(lat: Double, lon: Double) {
         viewModelScope.launch(Dispatchers.IO + handle) {
-            Log.i("DELETE", "Attempting to delete location details: $lat, $lon")
             val result2 = favLocationsRepository.deleteFavDetails(lat, lon)
             if (result2 > 0) {
                 mutableDetailsResponse.value = Response.Success
@@ -135,7 +132,6 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
                 }
                 .distinctUntilChanged()
                 .collect { details ->
-                    Log.i("TAG", "getFavDetails: $details")
                     mutableFavDetails.value = details
                     mutableDetailsResponse.value = Response.Success
                 }

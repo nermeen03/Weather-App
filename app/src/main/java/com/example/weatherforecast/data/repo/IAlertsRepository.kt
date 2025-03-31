@@ -8,4 +8,5 @@ interface IAlertsRepository {
 
     suspend fun insertAlert(alert: AlertsData): Long
     suspend fun delete(start: String, end: String, location: String): Int
+    fun getAlert(date: String, time: String, loc: String): AlertsData?
 }

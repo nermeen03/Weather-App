@@ -45,7 +45,6 @@ class AlarmActivity : ComponentActivity() {
         )
         val message = intent.getStringExtra("MESSAGE") ?: getString(R.string.weather_alert_no_data_available)
         val time = intent.getLongExtra("DURATION",30_000)
-        Log.i("TAG", "onCreate: duration is $time")
         setContent {
             AlarmScreen(
                 context = this,

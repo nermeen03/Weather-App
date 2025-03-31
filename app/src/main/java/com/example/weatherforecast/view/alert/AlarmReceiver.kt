@@ -11,9 +11,11 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.example.weatherforecast.R
 import com.example.weatherforecast.data.local.alerts.AlertsDataBase
 import com.example.weatherforecast.data.local.alerts.AlertsLocalDataSource
+import com.example.weatherforecast.data.pojo.AlertsData
 import com.example.weatherforecast.data.remote.DailyRemoteDataSource
 import com.example.weatherforecast.data.repo.AlertsRepository
 import com.example.weatherforecast.data.repo.DailyDataRepository
@@ -29,6 +31,7 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (context == null) return
 
+
         val isAlarm = intent?.getBooleanExtra("IS_ALARM", false) ?: false
         val date = intent?.getStringExtra("DATE") ?: ""
         val time = intent?.getStringExtra("TIME") ?: ""
@@ -36,6 +39,9 @@ class AlarmReceiver : BroadcastReceiver() {
         val lat = intent?.getDoubleExtra("LAT", 0.0) ?: 0.0
         val lon = intent?.getDoubleExtra("LON", 0.0) ?: 0.0
         val duration = intent?.getLongExtra("DURATION", 30_000) ?: 30_000
+
+        val data = AlertsData(date, time, loc, lat, lon,isAlarm)
+        val requestCode = getUniqueRequestCode(data)
 
         val alertsDao = AlertsDataBase.getInstance(context).getAlertsDao()
         val repository = AlertsRepository.getRepository(AlertsLocalDataSource(alertsDao))
@@ -81,7 +87,6 @@ class AlarmReceiver : BroadcastReceiver() {
 
             if (message.isNotEmpty()) {
                 if (isAlarm) {
-
                     if (!Settings.canDrawOverlays(context)) {
                         val overlayIntent = Intent(
                             Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -98,21 +103,23 @@ class AlarmReceiver : BroadcastReceiver() {
                         }
                         context.applicationContext.startActivity(alarmIntent)
                     }
-
                 }
                 else {
-                    showNotification(context, message)
+                    val existingAlert = repository.getAlert(date, time, loc)
+                    if (existingAlert == null) {
+                        Log.d("AlarmReceiver", "Alert was deleted. Skipping notification.")
+                        return@launch
+                    }
+                    withContext(Dispatchers.Main) {
+                        showNotification(context, message, requestCode)
+                    }
                 }
             }
         }
-
-
-
     }
 
-    private fun showNotification(context: Context, message: String) {
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private fun showNotification(context: Context, message: String, requestCode: Int) {
+        val notificationManager = ContextCompat.getSystemService(context, NotificationManager::class.java) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -133,6 +140,6 @@ class AlarmReceiver : BroadcastReceiver() {
             .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(1001, notification)
+        notificationManager.notify(requestCode, notification)
     }
 }

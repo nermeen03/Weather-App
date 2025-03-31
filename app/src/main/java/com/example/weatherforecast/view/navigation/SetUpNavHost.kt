@@ -36,7 +36,7 @@ fun SetUpNavHost(navController: NavHostController) {
         composable("details/{lat}/{lon}") { backStackEntry ->
             val lat = backStackEntry.arguments?.getString("lat")?.toDoubleOrNull() ?: 0.0
             val lon = backStackEntry.arguments?.getString("lon")?.toDoubleOrNull() ?: 0.0
-            DetailsScreen(lat, lon)
+            DetailsScreen(lat, lon,navController)
         }
         composable(
             route = ScreenRoute.DetailsOfflineRoute.route,

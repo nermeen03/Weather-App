@@ -9,7 +9,11 @@ class AlertsLocalDataSource(private val alertsDao: AlertsDao) : IAlertsLocalData
         return alertsDao.getAll()
     }
 
-     override suspend fun insert(alert: AlertsData):Long{
+    override fun getAlert(date: String, time: String, loc: String): AlertsData? {
+        return alertsDao.getAlert(date, time, loc)
+    }
+
+    override suspend fun insert(alert: AlertsData):Long{
         return alertsDao.insert(alert)
     }
 

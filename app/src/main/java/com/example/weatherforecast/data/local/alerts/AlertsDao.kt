@@ -13,6 +13,10 @@ interface AlertsDao {
     @Query("Select * from alerts")
     fun getAll(): Flow<List<AlertsData>>
 
+    @Query("SELECT * FROM alerts WHERE date = :date AND time = :time AND location = :loc LIMIT 1")
+    fun getAlert(date: String, time: String, loc: String): AlertsData?
+
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(alert: AlertsData): Long
 

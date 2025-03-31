@@ -23,6 +23,9 @@ class AlertsRepository(private val alertsLocalDataSource: IAlertsLocalDataSource
      override fun getAllAlerts(): Flow<List<AlertsData>> {
         return alertsLocalDataSource.getAll()
     }
+    override fun getAlert(date:String, time:String, loc:String): AlertsData? {
+        return alertsLocalDataSource.getAlert(date, time, loc)
+    }
      override suspend fun insertAlert(alert: AlertsData):Long{
         return alertsLocalDataSource.insert(alert)
     }

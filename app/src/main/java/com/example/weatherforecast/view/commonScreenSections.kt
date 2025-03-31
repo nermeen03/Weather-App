@@ -151,7 +151,6 @@ fun TopWeatherSection(weather: String, feelLike: Double,state: String,weatherAra
     val application = context.applicationContext as MyApplication
     val weatherValue = if(application.getCurrentLanguage(context) == "en") weather else weatherArabic
 
-    Log.i("TAG", "TopWeatherSection: weather is $weatherArabic")
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
@@ -181,8 +180,6 @@ fun WeatherLocationSection(temp: Double,location:String,locationArabic: String) 
     val context = LocalContext.current
     val application = context.applicationContext as MyApplication
     val locValue = if(application.getCurrentLanguage(context) == "en") location else locationArabic
-
-    Log.i("TAG", "TopWeatherSection: loc is ${application.getCurrentLanguage(context)}")
 
     Box(
         modifier = Modifier
@@ -418,7 +415,6 @@ fun GetWeatherData(
             val long = currentLocation.value.second
 
             if (internet.value && lat != -1.0 && long != -1.0) {
-                Log.i("TAG", "MainScreen: Fetching weather data for $lat, $long")
                 viewModel.fetchWeatherData(lat, long)
             }
         }
@@ -474,11 +470,7 @@ fun GetWeatherDataByLoc(
 
     if(!application.reStarted) {
         LaunchedEffect(lat, long, internet.value) {
-            Log.i("TAG", "GetWeatherDataByLoc: Checking internet status - ${internet.value}")
-            Log.i("TAG", "GetWeatherDataByLoc: Location - lat: $lat, long: $long")
-
             if (internet.value && lat != -1.0 && long != -1.0) {
-                Log.i("TAG", "GetWeatherDataByLoc: Fetching weather data for $lat, $long")
                 viewModel.fetchWeatherData(lat, long)
             } else {
                 Log.e("TAG", "GetWeatherDataByLoc: Conditions not met, skipping API call")

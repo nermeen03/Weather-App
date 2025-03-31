@@ -1,7 +1,6 @@
 package com.example.weatherforecast.view.home
 
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,8 +34,6 @@ import kotlinx.coroutines.delay
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MainScreen() {
-    Log.i("TAG", "MainScreen: home page")
-
     var temp by rememberSaveable { mutableDoubleStateOf(0.0) }
     var feelLike by rememberSaveable { mutableDoubleStateOf(0.0) }
     var weather by rememberSaveable { mutableStateOf("") }
@@ -59,7 +56,6 @@ fun MainScreen() {
     val application = context.applicationContext as MyApplication
 
     if(!application.reStarted && internet.value) {
-        Log.i("TAG", "MainScreen: not restarted")
         GetWeatherData(
             updateCurrent = { newDetails ->
                 currentDetails = newDetails
@@ -86,22 +82,22 @@ fun MainScreen() {
 
     LaunchedEffect(response) {
         if (response is Response.Success && currentDetails != null && !application.reStarted) {
-            Log.i("TAG", "MainScreen: Updating UI after success")
             currentDetails?.let { details ->
                 temp = details.temp
                 feelLike = details.feelLike
                 weather = details.weather
                 location = "${details.place.name}, ${details.place.code}"
+                application.updateLocationName(location)
                 state = details.state
                 todayDetails = DailyDetails(details.pressure, details.humidity, details.speed, details.cloud)
             }
         } else if ((!internet.value && savedWeather != null)||(internet.value && application.reStarted && savedWeather != null)) {
-            Log.i("TAG", "MainScreen: Loading saved weather data")
             savedWeather.let { details ->
                 temp = details.temp
                 feelLike = details.feelLike
                 weather = details.weather
                 location = "${details.place.name}, ${details.place.code}"
+                application.updateLocationName(location)
                 state = details.state
                 todayDetails = DailyDetails(details.pressure, details.humidity, details.speed, details.cloud)
                 hourlyList = savedHourlyList
@@ -111,29 +107,18 @@ fun MainScreen() {
         }
     }
 
-
-    Log.i("TAG", "MainScreen: saved $savedWeather ${savedWeather?.temp}")
-
     if (internet.value && !application.reStarted) {
-        Log.i("TAG", "MainScreen: Response status - $response")
-
         when {
             response is Response.Loading -> {
-                Log.i("TAG", "MainScreen: Loading screen")
                 WaitingGif()
             }
-
             response is Response.Success && currentDetails != null -> {
-                Log.i("TAG", "MainScreen: Displaying weather data")
                 WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
             }
-
             response is Response.Failure && savedWeather!=null&& savedHourlyList.isNotEmpty()&&savedDailyList.isNotEmpty() -> {
                 WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
             }
-
             else -> {
-                Log.i("TAG", "MainScreen: Waiting for data to update")
                 WaitingGif() // errorGif
             }
         }
@@ -142,8 +127,6 @@ fun MainScreen() {
         WeatherSections(viewModel,context,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
     }
     else if(!internet.value && savedWeather!=null && savedDailyList.isNotEmpty()){
-            Log.i("TAG", "MainScreen: Loading saved weather data")
-
             var isDataLoaded by remember { mutableStateOf(false) }
 
             LaunchedEffect(Unit) {

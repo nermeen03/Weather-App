@@ -7,7 +7,6 @@ import android.app.PendingIntent
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -77,7 +76,7 @@ import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.AlertsViewModel
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import java.util.Date
+import kotlin.math.absoluteValue
 
 @Composable
 fun AlertsScreen() {
@@ -90,7 +89,7 @@ fun AlertsScreen() {
     val lat = currentLocation.value.first
     val long = currentLocation.value.second
 
-    val loc = ""
+    val loc = application.currentLocationName.collectAsStateWithLifecycle().value
 
     val viewModel: AlertsViewModel = viewModel(
         factory = AlertsViewModel.AlertsViewModelFactory(
@@ -126,7 +125,7 @@ fun AlertsScreen() {
                     }
                 }
             ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.go_to_map))
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_alert))
             }
         }
     ) { paddingValues ->
@@ -240,7 +239,7 @@ fun AlertRow(item: AlertsData, viewModel: AlertsViewModel) {
 
             Button(
                 onClick = {
-                    viewModel.deleteAlert(item.date,item.time,item.location)
+                    viewModel.deleteAlert(item,context,item.type)
                     when (viewModel.response.value) {
                         is Response.Success -> {
                             Toast.makeText(context, context.getString(R.string.removed_successfully), Toast.LENGTH_SHORT).show()
@@ -426,15 +425,15 @@ fun setExactAlarm(context: Context, timeInMillis: Long, isAlarm: Boolean,viewMod
         putExtra("DURATION", duration)
     }
 
+    val requestCode = getUniqueRequestCode(data)
     val pendingIntent = PendingIntent.getBroadcast(
         context,
-        System.currentTimeMillis().toInt(),
+        requestCode,
         intent,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
     if (timeInMillis > System.currentTimeMillis()) {
-        Log.d("Alarm", "Setting alarm for: ${Date(timeInMillis)}")
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
             timeInMillis,
@@ -448,6 +447,11 @@ fun setExactAlarm(context: Context, timeInMillis: Long, isAlarm: Boolean,viewMod
             context.getString(R.string.cannot_set_alarm_in_the_past), Toast.LENGTH_SHORT).show()
     }
 }
+
+fun getUniqueRequestCode(data: AlertsData): Int {
+    return (data.date.hashCode() + data.time.hashCode() + data.location.hashCode()).absoluteValue
+}
+
 @Composable
 fun DropdownSelector(label: String, options: List<Int>, selectedOption: Int, onOptionSelected: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }

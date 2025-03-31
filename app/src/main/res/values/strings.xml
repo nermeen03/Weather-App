@@ -66,7 +66,7 @@
     <string name="select_a_future_time">Select a future time!</string>
     <string name="select_date_and_time_first">Select date and time first!</string>
     <string name="set_alert">Set Alert</string>
-    <string name="alarm_set_successfully">Alarm set successfully!</string>
+    <string name="alarm_set_successfully">Alert set successfully!</string>
     <string name="cannot_set_alarm_in_the_past">Cannot set alarm in the past!</string>
     <string name="choose_location">Choose Location</string>
     <string name="use_gps">Use GPS</string>
@@ -93,4 +93,5 @@
     <string name="retry">Retry</string>
     <string name="no_offline_data_was_saved_for_this_location">No offline data was saved for this location</string>
     <string name="offline_details_for_this_location_was_saved">Offline details for this location was saved</string>
+    <string name="add_alert">add alert</string>
 </resources>

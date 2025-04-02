@@ -35,6 +35,8 @@ class MyApplication : Application() {
     val temp: StateFlow<String> = _mutableTemp.asStateFlow()
     private val _mutableWind = MutableStateFlow("mps")
     val wind: StateFlow<String> = _mutableWind.asStateFlow()
+    private val _mutableLang = MutableStateFlow("en")
+    val language: StateFlow<String> = _mutableLang.asStateFlow()
 
     private lateinit var systemLang:String
 
@@ -50,27 +52,41 @@ class MyApplication : Application() {
 
     fun getCurrentLanguage(context: Context): String {
         val sharedPreferences: SharedPreferences = context.getSharedPreferences("Settings", Context.MODE_PRIVATE)
-        val savedLang = sharedPreferences.getString("Language", "en")
-        return savedLang?:"en"
+        val savedLang = sharedPreferences.getString("Language", "def")
+        return if (savedLang == "def") systemLang else savedLang ?: "en"
     }
+
     fun setLanguage(context: Context, langCode: String) {
+        _mutableLang.value = langCode
         val locale = when (langCode) {
             "def" -> Locale(systemLang)
             else -> Locale(langCode)
         }
-        Log.i("TAG", "setLanguage: ${locale.language}")
 
         Locale.setDefault(locale)
-
 
         val config = Configuration(context.resources.configuration)
         config.setLocale(locale)
         config.setLayoutDirection(locale)
-
         context.resources.updateConfiguration(config, context.resources.displayMetrics)
-        saveLanguagePreference(context, langCode)
 
+        if (langCode != "def") {
+            saveLanguagePreference(context, langCode)
+        } else {
+            clearLanguagePreference(context)
+        }
     }
+
+
+
+    private fun clearLanguagePreference(context: Context) {
+        val sharedPref = context.getSharedPreferences("Settings", Context.MODE_PRIVATE)
+        with(sharedPref.edit()) {
+            remove("Language")
+            apply()
+        }
+    }
+
     fun updateLocationName(newName: String,arabicName:String) {
         _mutableCurrentLocationName.value = newName
         _mutableCurrentLocationArabicName.value = arabicName
@@ -237,6 +253,7 @@ class MyApplication : Application() {
         editor.putString("Language", langCode)
         editor.clear().apply()
     }
+
 
     fun loadLanguagePreference(context: Context) {
         val sharedPreferences: SharedPreferences = context.getSharedPreferences("Settings", Context.MODE_PRIVATE)

@@ -361,9 +361,8 @@ fun ChooseAlertDialog(
                         Text(stringResource(R.string.notification))
                     }
                 }
-
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(stringResource(R.string.set_duration), fontSize = 16.sp, fontWeight = FontWeight.Medium)
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -384,7 +383,9 @@ fun ChooseAlertDialog(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+
                 Text(stringResource(R.string.total_duration) + selectedMinutes + stringResource(R.string.min) + selectedSeconds + stringResource(R.string.sec))
+
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -395,10 +396,12 @@ fun ChooseAlertDialog(
                             onConfirm(calendar.timeInMillis, selectedAlertType == "Alarm", alertData, totalMillis)
                             onDismiss()
                         } else {
-                            Toast.makeText(context, context.getString(R.string.select_a_future_time), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context,
+                                context.getString(R.string.select_a_future_time), Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Toast.makeText(context, context.getString(R.string.select_date_and_time_first), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context,
+                            context.getString(R.string.select_date_and_time_first), Toast.LENGTH_SHORT).show()
                     }
                 }) {
                     Text(text = stringResource(R.string.set_alert))

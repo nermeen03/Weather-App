@@ -34,6 +34,7 @@ fun SettingsScreen(navController: NavHostController) {
     val location by application.location.collectAsState()
     val temp by application.temp.collectAsState()
     val wind by application.wind.collectAsState()
+    val language by application.language.collectAsState()
 
     Column(
         modifier = Modifier
@@ -161,7 +162,7 @@ fun SettingsScreen(navController: NavHostController) {
                     modifier = Modifier.weight(1f)
                 ) {
                     RadioButton(
-                        selected = application.getCurrentLanguage(context) == langCode,
+                        selected = language == langCode,
                         onClick = {
                             application.setLanguage(context, langCode)
                             application.reStarted = true

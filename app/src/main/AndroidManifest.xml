@@ -29,15 +29,14 @@
         <meta-data android:name="org.osmdroid.config" android:value="true"/>
         <receiver
             android:name=".view.alert.AlarmReceiver"
-            android:enabled="true"
-            android:exported="false"
+            android:exported="true"
             android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
-
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_ALARM_ACTION"/>
             </intent-filter>
         </receiver>
+
 
 
         <activity

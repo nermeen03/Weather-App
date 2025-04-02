@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.weatherforecast.data.pojo.AlertsData
 
-@Database(entities = [AlertsData::class], version = 4)
+@Database(entities = [AlertsData::class], version = 5)
 abstract class AlertsDataBase: RoomDatabase() {
     abstract fun getAlertsDao(): AlertsDao
     companion object{
@@ -15,7 +15,7 @@ abstract class AlertsDataBase: RoomDatabase() {
         fun getInstance(ctx: Context): AlertsDataBase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
-                    ctx.applicationContext, AlertsDataBase::class.java, "alertsDB")
+                    ctx.applicationContext, AlertsDataBase::class.java, "alerts_database")
                     .build()
                 INSTANCE = instance
                 instance }

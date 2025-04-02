@@ -26,7 +26,7 @@ class AlertsRepositoryTest{
     private lateinit var alertsLocalDataSource: AlertsLocalDataSource
     private lateinit var alertsRepository: AlertsRepository
 
-    private var alertsData = AlertsData("23/0","1:30","loc",0.0,0.0, true)
+    private var alertsData = AlertsData("23/0","1:30","loc",0.0,0.0, true,"")
 
 
     @Before

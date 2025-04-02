@@ -336,7 +336,6 @@ fun SelectedLocationByName(location: NameResponseItem, viewModel: FavLocationsVi
                         }
                     }
                     is Response.Failure -> {
-                        Log.e("TAG", "FavRow: Failed to fetch details, inserting without weather data")
                         Toast.makeText(
                             context,
                             context.getString(R.string.an_error_occurred),

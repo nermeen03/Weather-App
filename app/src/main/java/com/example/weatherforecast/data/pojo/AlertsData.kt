@@ -7,5 +7,5 @@ import androidx.room.Entity
 data class AlertsData(
     val date:String, val time:String,
     val location:String, val lat:Double,
-    val lon:Double, val type: Boolean
+    val lon:Double, val type: Boolean,val arabicLocation:String
 )

@@ -56,7 +56,6 @@ import com.example.weatherforecast.data.pojo.DailyDetails
 import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.pojo.WeatherDetails
 import com.example.weatherforecast.view.utils.internet
-import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.DailyDataViewModel
 import java.time.LocalDate
 
@@ -389,6 +388,7 @@ fun DayDataCard(details: HourlyDetails) {
 
 
 
+@SuppressLint("StateFlowValueCalledInComposition")
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun GetWeatherData(
@@ -409,19 +409,21 @@ fun GetWeatherData(
     val application = context.applicationContext as MyApplication
     val currentLocation = application.currentLocation.collectAsStateWithLifecycle()
 
-    isInternetAvailable(context)
-    val internet = internet.collectAsStateWithLifecycle()
+    val homeBoolean = application.home.collectAsStateWithLifecycle()
 
-    if(!application.reStarted) {
-        LaunchedEffect(currentLocation.value, internet.value) {
+    LaunchedEffect(currentLocation.value.first,currentLocation.value.second) {
+        if (!homeBoolean.value && !application.reStarted) {
             val lat = currentLocation.value.first
             val long = currentLocation.value.second
 
             if (internet.value && lat != -1.0 && long != -1.0) {
                 viewModel.fetchWeatherData(lat, long)
+                application.home.value = true
             }
         }
     }
+
+
     /*LaunchedEffect(Unit) {
         snapshotFlow { currentLocation.value }
             .distinctUntilChanged()
@@ -436,7 +438,7 @@ fun GetWeatherData(
             }
     }*/
 
-    if(message.value == Response.Success && currentWeather.value != null && filteredWeather.value?.second != emptyList<HourlyDetails>() && langData.value.isNotEmpty()){
+    if(homeBoolean.value&&message.value == Response.Success && currentWeather.value != null && filteredWeather.value?.second != emptyList<HourlyDetails>() && langData.value.isNotEmpty()){
         updateCurrent(currentWeather.value!!)
         updateList(filteredWeather.value?.first?:emptyList(),filteredWeather.value?.second?: emptyList())
         arabicData(langData.value)
@@ -462,26 +464,18 @@ fun GetWeatherDataByLoc(
     arabicData:(List<String>)->Unit
     ,viewModel: DailyDataViewModel
 ) {
-    val context = LocalContext.current
-    val application = context.applicationContext as MyApplication
-
     val currentWeather = viewModel.currentWeatherDetails.collectAsStateWithLifecycle()
     val filteredWeather = viewModel.filteredWeatherData.collectAsStateWithLifecycle()
     val langData = viewModel.currentArabicDetails.collectAsStateWithLifecycle()
 
     val message = viewModel.response.collectAsStateWithLifecycle()
-
-    if(!application.reStarted) {
-        LaunchedEffect(lat, long, internet.value) {
-            if (internet.value && lat != -1.0 && long != -1.0) {
-                viewModel.fetchWeatherData(lat, long)
-            } else {
-                Log.e("TAG", "GetWeatherDataByLoc: Conditions not met, skipping API call")
-            }
+    LaunchedEffect(Unit) {
+        if (internet.value) {
+            viewModel.fetchWeatherData(lat, long)
+        } else {
+            Log.e("TAG", "GetWeatherDataByLoc: Conditions not met, skipping API call")
         }
-
     }
-
 
     if(message.value == Response.Success && currentWeather.value != null && filteredWeather.value?.second != emptyList<HourlyDetails>() ){
         updateCurrent(currentWeather.value!!)

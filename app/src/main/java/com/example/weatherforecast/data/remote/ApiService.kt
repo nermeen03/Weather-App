@@ -33,7 +33,7 @@ interface ApiService {
         @Query("appid") apiKey: String = "2fc5f5f3f6a9b61df9391d8ae569f5e0"
     ):Response<NameResponse>
 
-    @GET("data/2.5/weather?id=524901&lang=ar&appid=2fc5f5f3f6a9b61df9391d8ae569f5e0")
+    @GET("data/2.5/weather")
     suspend fun getArabicData(
         @Query("lat") lat: Double,
         @Query("lon") lon: Double,

@@ -35,12 +35,13 @@ class AlarmReceiver : BroadcastReceiver() {
         val isAlarm = intent?.getBooleanExtra("IS_ALARM", false) ?: false
         val date = intent?.getStringExtra("DATE") ?: ""
         val time = intent?.getStringExtra("TIME") ?: ""
-        val loc = intent?.getStringExtra("LOC") ?: ""
+        val loc = intent?.getStringExtra("LocationArabic") ?: ""
+        val arabicLoc = intent?.getStringExtra("LOC") ?: ""
         val lat = intent?.getDoubleExtra("LAT", 0.0) ?: 0.0
         val lon = intent?.getDoubleExtra("LON", 0.0) ?: 0.0
         val duration = intent?.getLongExtra("DURATION", 30_000) ?: 30_000
 
-        val data = AlertsData(date, time, loc, lat, lon,isAlarm)
+        val data = AlertsData(date, time, loc, lat, lon,isAlarm,arabicLoc)
         val requestCode = getUniqueRequestCode(data)
 
         val alertsDao = AlertsDataBase.getInstance(context).getAlertsDao()
@@ -58,8 +59,12 @@ class AlarmReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.Main + handle).launch {
             try {
                 message = withContext(Dispatchers.IO) {
+                    val existingAlert = repository.getAlert(date, time, loc)
+                    if (existingAlert == null) {
+                        Log.d("AlarmReceiver", "Alert does not exist. Skipping notification.")
+                        return@withContext ""
+                    }
                     repository.delete(date, time, loc)
-
                     val result = try {
                         dataRepository.getDailyData(lat, lon).firstOrNull()
                     } catch (e: Exception) {
@@ -105,11 +110,6 @@ class AlarmReceiver : BroadcastReceiver() {
                     }
                 }
                 else {
-                    val existingAlert = repository.getAlert(date, time, loc)
-                    if (existingAlert == null) {
-                        Log.d("AlarmReceiver", "Alert was deleted. Skipping notification.")
-                        return@launch
-                    }
                     withContext(Dispatchers.Main) {
                         showNotification(context, message, requestCode)
                     }

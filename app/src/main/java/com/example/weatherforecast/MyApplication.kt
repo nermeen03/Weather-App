@@ -7,6 +7,7 @@ import android.content.res.Configuration
 import android.util.Log
 import com.example.weatherforecast.data.pojo.HourlyDetails
 import com.example.weatherforecast.data.pojo.WeatherDetails
+import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,24 +21,29 @@ import java.util.Locale
 
 class MyApplication : Application() {
 
+
+
     private val _mutableLocation = MutableStateFlow("GPS")
     val location: StateFlow<String> = _mutableLocation.asStateFlow()
     private val _mutableCurrentLocation = MutableStateFlow(Pair(-1.0,-1.0))
     val currentLocation: StateFlow<Pair<Double, Double>> = _mutableCurrentLocation.asStateFlow()
     private val _mutableCurrentLocationName = MutableStateFlow("")
     val currentLocationName: StateFlow<String> = _mutableCurrentLocationName.asStateFlow()
+    private val _mutableCurrentLocationArabicName = MutableStateFlow("")
+    val currentLocationArabicName: StateFlow<String> = _mutableCurrentLocationArabicName.asStateFlow()
     private val _mutableTemp = MutableStateFlow("K")
     val temp: StateFlow<String> = _mutableTemp.asStateFlow()
-    private val _mutableWind = MutableStateFlow("m/s")
+    private val _mutableWind = MutableStateFlow("mps")
     val wind: StateFlow<String> = _mutableWind.asStateFlow()
 
 
     var reStarted = false
+    val home = MutableStateFlow(false)
 
     override fun onCreate() {
         super.onCreate()
         sharedPreferences = applicationContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-
+        isInternetAvailable(this)
     }
 
     fun getCurrentLanguage(context: Context): String {
@@ -57,8 +63,9 @@ class MyApplication : Application() {
         saveLanguagePreference(context, langCode)
 
     }
-    fun updateLocationName(newName: String) {
+    fun updateLocationName(newName: String,arabicName:String) {
         _mutableCurrentLocationName.value = newName
+        _mutableCurrentLocationArabicName.value = arabicName
     }
 
 
@@ -68,6 +75,7 @@ class MyApplication : Application() {
     fun setCurrentLocation(loc: Pair<Double, Double>) {
         if (_mutableCurrentLocation.value != loc) {
             _mutableCurrentLocation.value = loc
+            home.value = false
         } else {
             Log.d("TAG", "setCurrentLocation: No change in location")
         }
@@ -80,7 +88,7 @@ class MyApplication : Application() {
         _mutableWind.value = str
     }
 
-    private fun convertToArabicNumbers(number: Double?): String? {
+    fun convertToArabicNumbers(number: Double?): String? {
         number?:let {
             return null
         }

@@ -72,7 +72,6 @@ import com.example.weatherforecast.data.local.alerts.AlertsLocalDataSource
 import com.example.weatherforecast.data.pojo.AlertsData
 import com.example.weatherforecast.data.repo.AlertsRepository
 import com.example.weatherforecast.view.utils.internet
-import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.AlertsViewModel
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -90,6 +89,7 @@ fun AlertsScreen() {
     val long = currentLocation.value.second
 
     val loc = application.currentLocationName.collectAsStateWithLifecycle().value
+    val locArabic = application.currentLocationArabicName.collectAsStateWithLifecycle().value
 
     val viewModel: AlertsViewModel = viewModel(
         factory = AlertsViewModel.AlertsViewModelFactory(
@@ -107,7 +107,6 @@ fun AlertsScreen() {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    isInternetAvailable(context)
                     if (internet.value) {
                         showBottomSheet = true
                     } else {
@@ -160,7 +159,7 @@ fun AlertsScreen() {
                     onConfirm = { time, isAlarm,data,duration ->
                         setExactAlarm(context, time, isAlarm,viewModel,data,duration)
                     },
-                    lat,long,loc
+                    lat,long,loc,locArabic
                 )
             }
         }
@@ -196,6 +195,10 @@ fun AlertRow(item: AlertsData, viewModel: AlertsViewModel) {
     val context = LocalContext.current
     val application = context.applicationContext as MyApplication
     val date = application.convertDateToArabic(item.date)
+    val textValue = if (application.getCurrentLanguage(context) == "en")
+        item.location
+    else
+        item.arabicLocation
 
     Card(
         modifier = Modifier
@@ -216,7 +219,7 @@ fun AlertRow(item: AlertsData, viewModel: AlertsViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${date}, ${item.time}",
+                        text = "${date}, ${application.convertTimeToArabic(item.time)}",
                         style = MaterialTheme.typography.bodyLarge
                     )
 
@@ -231,7 +234,7 @@ fun AlertRow(item: AlertsData, viewModel: AlertsViewModel) {
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = item.location,
+                    text = textValue,
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -267,7 +270,7 @@ fun AlertRow(item: AlertsData, viewModel: AlertsViewModel) {
 fun ChooseAlertDialog(
     onDismiss: () -> Unit,
     onConfirm: (Long, Boolean,AlertsData,Long) -> Unit,
-    lat:Double,lon:Double,location: String
+    lat:Double,lon:Double,location: String,locArabic:String
 ) {
     val context = LocalContext.current
     val calendar = remember { Calendar.getInstance() }
@@ -390,7 +393,7 @@ fun ChooseAlertDialog(
                 Button(onClick = {
                     if (selectedDate.isNotEmpty() && selectedTime.isNotEmpty()) {
                         if (calendar.timeInMillis > System.currentTimeMillis()) {
-                            val alertData = AlertsData(selectedDate,selectedTime,location,lat,lon,selectedAlertType == "Alarm")
+                            val alertData = AlertsData(selectedDate,selectedTime,location,lat,lon,selectedAlertType == "Alarm",locArabic)
                             onConfirm(calendar.timeInMillis, selectedAlertType == "Alarm",alertData,totalMillis)
                             onDismiss()
                         } else {
@@ -423,6 +426,7 @@ fun setExactAlarm(context: Context, timeInMillis: Long, isAlarm: Boolean,viewMod
         putExtra("LONG", data.lon)
         putExtra("IS_ALARM", isAlarm)
         putExtra("DURATION", duration)
+        putExtra("LocationArabic",data.arabicLocation)
     }
 
     val requestCode = getUniqueRequestCode(data)

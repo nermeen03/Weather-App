@@ -63,12 +63,12 @@ import com.example.weatherforecast.data.remote.RetrofitHelper
 import com.example.weatherforecast.data.repo.FavLocationsRepository
 import com.example.weatherforecast.view.navigation.ScreenRoute
 import com.example.weatherforecast.view.utils.internet
-import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -97,7 +97,6 @@ fun FavScreen(navController: NavHostController) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    isInternetAvailable(context)
                     if (internet.value) {
                         navController.navigate(ScreenRoute.MapScreenRoute.route) {
                             launchSingleTop = true
@@ -110,7 +109,6 @@ fun FavScreen(navController: NavHostController) {
                                 actionLabel = context.getString(R.string.retry)
                             )
                             if (result == SnackbarResult.ActionPerformed) {
-                                isInternetAvailable(context)
                                 if (internet.value) {
                                     navController.navigate(ScreenRoute.MapScreenRoute.route) {
                                         launchSingleTop = true
@@ -218,7 +216,6 @@ fun FavRow(
             .padding(8.dp)
             .fillMaxWidth()
             .clickable {
-                isInternetAvailable(context)
                 if (internet.value) {
                     navController.navigate("details/${item.lat}/${item.lon}") {
                         launchSingleTop = true
@@ -233,7 +230,9 @@ fun FavRow(
                                     navController.navigate(
                                         ScreenRoute.DetailsOfflineRoute.withArgs(item.lat, item.lon)
                                     ) {
-                                        popUpTo(ScreenRoute.FavScreenRoute.route) { inclusive = true }
+                                        popUpTo(ScreenRoute.FavScreenRoute.route) {
+                                            inclusive = true
+                                        }
                                         launchSingleTop = true
                                     }
                                 }
@@ -268,7 +267,8 @@ fun FavRow(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = stringResource(R.string.lat) + item.lat + stringResource(R.string.lon) + item.lon,
+                    text = stringResource(R.string.lat) + application.convertToArabicNumbers(item.lat) +
+                            stringResource(R.string.lon) + application.convertToArabicNumbers(item.lon),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -286,15 +286,8 @@ fun FavRow(
                         if (result == SnackbarResult.ActionPerformed) {
                             viewModel.insertLocation(item)
                         }else{
-                            viewModel.getFavDetails(item.lon, item.lat)
-                            when (viewModel.detailsResponse.first()) {
-                                is Response.Success -> {
-                                    viewModel.deleteLocationDetail(item.lat, item.lon)
-                                }
-                                is Response.Failure -> {
-                                    Log.d("TAG", "FavRow: no details")
-                                }
-                                Response.Loading -> Log.d("TAG", "FavRow: Waiting for response...")
+                            withContext(Dispatchers.IO){
+                                viewModel.deleteLocationDetail(item.lat, item.lon)
                             }
                         }
                     }

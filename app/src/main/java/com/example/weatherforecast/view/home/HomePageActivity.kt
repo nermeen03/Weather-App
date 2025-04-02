@@ -2,6 +2,7 @@ package com.example.weatherforecast.view.home
 
 import android.annotation.SuppressLint
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,7 +29,6 @@ import com.example.weatherforecast.view.RetryImage
 import com.example.weatherforecast.view.WaitingGif
 import com.example.weatherforecast.view.WeatherSections
 import com.example.weatherforecast.view.utils.internet
-import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.DailyDataViewModel
 import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
 import kotlinx.coroutines.delay
@@ -52,15 +52,17 @@ fun MainScreen() {
     val viewModel: DailyDataViewModel =
         viewModel(factory = DailyDataViewModelFactory(DailyDataRepository.getRepository(RetrofitHelper.retrofitInstance.create(ApiService::class.java))))
 
-    isInternetAvailable(context)
+
     val internet = internet.collectAsStateWithLifecycle()
 
     val response by viewModel.response.collectAsStateWithLifecycle()
     val application = context.applicationContext as MyApplication
-    val lat = application.currentLocation.value.first
-    val lon = application.currentLocation.value.second
+    val currentLocation = application.currentLocation.collectAsStateWithLifecycle()
 
-    if(!application.reStarted && internet.value) {
+    val lat = currentLocation.value.first
+    val lon = currentLocation.value.second
+
+    if(!application.reStarted && internet.value && lat != -1.0 && lon != -1.0) {
         GetWeatherData(
             updateCurrent = { newDetails ->
                 currentDetails = newDetails
@@ -92,7 +94,7 @@ fun MainScreen() {
                 feelLike = details.feelLike
                 weather = details.weather
                 location = "${details.place.name}, ${details.place.code}"
-                application.updateLocationName(location)
+                application.updateLocationName(location,arabicData?.get(0)?:location)
                 state = details.state
                 todayDetails = DailyDetails(details.pressure, details.humidity, details.speed, details.cloud)
             }
@@ -102,7 +104,7 @@ fun MainScreen() {
                 feelLike = details.feelLike
                 weather = details.weather
                 location = "${details.place.name}, ${details.place.code}"
-                application.updateLocationName(location)
+                application.updateLocationName(location,savedArabicData?.get(0)?:location)
                 state = details.state
                 todayDetails = DailyDetails(details.pressure, details.humidity, details.speed, details.cloud)
                 hourlyList = savedHourlyList
@@ -128,7 +130,6 @@ fun MainScreen() {
             }
         }
     }else if(internet.value && application.reStarted){
-
         WeatherSections(viewModel,context,lat,lon,weather,feelLike,state, temp, location, hourlyList, todayDetails, daysList,arabicData)
     }
     else if(!internet.value && savedWeather!=null && savedDailyList.isNotEmpty()){

@@ -4,20 +4,14 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-03-29T19:25:14.351587600Z">
+        <DropdownSelection timestamp="2025-04-02T08:12:14.459170300Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\nerme\.android\avd\Copy_of_Medium_Phone_API_31.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\nerme\.android\avd\Medium_Phone_API_31.avd" />
             </handle>
           </Target>
         </DropdownSelection>
         <DialogSelection />
-      </SelectionState>
-      <SelectionState runConfigName="daoGetLocation_LatLon_IntForResult()">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="localDataSourceGetFavDetail_LatLon_IntForResult()">
-        <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
       <SelectionState runConfigName="repoGetAlert_FlowListOfAlertData()">
         <option name="selectionMode" value="DROPDOWN" />
@@ -26,6 +20,12 @@
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
       <SelectionState runConfigName="viewModelInsertLocation_Location_Success()">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="viewModelInsertDetail_Location_Success()">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="viewModelDeleteLocation_LatLon_Success()">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>

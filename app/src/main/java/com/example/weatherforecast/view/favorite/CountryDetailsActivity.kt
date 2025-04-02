@@ -23,6 +23,7 @@ import com.example.weatherforecast.data.local.favorite.FavLocationsLocalDataSour
 import com.example.weatherforecast.data.pojo.DailyDetails
 import com.example.weatherforecast.data.pojo.FavDetails
 import com.example.weatherforecast.data.pojo.HourlyDetails
+import com.example.weatherforecast.data.pojo.Location
 import com.example.weatherforecast.data.pojo.WeatherDetails
 import com.example.weatherforecast.data.remote.ApiService
 import com.example.weatherforecast.data.remote.FavLocationsRemoteDataSource
@@ -35,12 +36,12 @@ import com.example.weatherforecast.view.RetryImage
 import com.example.weatherforecast.view.WaitingGif
 import com.example.weatherforecast.view.WeatherSections
 import com.example.weatherforecast.view.utils.internet
-import com.example.weatherforecast.view.utils.isInternetAvailable
 import com.example.weatherforecast.viewModel.DailyDataViewModel
 import com.example.weatherforecast.viewModel.DailyDataViewModelFactory
 import com.example.weatherforecast.viewModel.FavLocationsViewModel
 
 
+@SuppressLint("StateFlowValueCalledInComposition")
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DetailsScreen(lat:Double,lon:Double,navController: NavHostController) {
@@ -69,9 +70,6 @@ fun DetailsScreen(lat:Double,lon:Double,navController: NavHostController) {
             )
         )
 
-    isInternetAvailable(context)
-    val internet = internet.collectAsState()
-
     val response by viewModel.response.collectAsState()
     val application = context.applicationContext as MyApplication
 
@@ -87,33 +85,30 @@ fun DetailsScreen(lat:Double,lon:Double,navController: NavHostController) {
             lat, lon,
             arabicData = { dataArray ->
                 arabicData = dataArray
-                MyApplication.saveArabicData(dataArray)
             },
             viewModel
         )
+    }else{
+        DetailsScreenOffline(lat, lon,viewModel)
     }
 
-    LaunchedEffect(response) {
-        if (response is Response.Success && currentDetails != null && !application.reStarted) {
-            currentDetails?.let { details ->
-                temp = details.temp
-                feelLike = details.feelLike
-                weather = details.weather
-                location = "${details.place.name}, ${details.place.code}"
-                state = details.state
-                todayDetails =
-                    DailyDetails(details.pressure, details.humidity, details.speed, details.cloud)
-            }
-        }
-    }
 
-    if (internet.value&& !application.reStarted) {
+    if (internet.value && !application.reStarted) {
         when {
             response is Response.Loading -> {
                 WaitingGif()
             }
 
             response is Response.Success && currentDetails != null -> {
+                currentDetails?.let { details ->
+                    temp = details.temp
+                    feelLike = details.feelLike
+                    weather = details.weather
+                    location = "${details.place.name}, ${details.place.code}"
+                    state = details.state
+                    todayDetails =
+                        DailyDetails(details.pressure, details.humidity, details.speed, details.cloud)
+                }
                 WeatherSections(
                     viewModel,
                     context,
@@ -151,16 +146,15 @@ fun DetailsScreen(lat:Double,lon:Double,navController: NavHostController) {
                         lon = lon,
                         location = location,
                         arabicData = arabicData?.ifEmpty { listOf("No Data") } ?: listOf(
-                            location,
-                            currentDetails!!.weather
+                            arabicData!![0],arabicData?.get(1)?:currentDetails!!.weather
                         )
                     ))
+                    favLocationsViewModel.insertLocation(Location(location,"",lon,lat,arabicData?.get(0)?:location))
                 }
             }
 
             response is Response.Failure -> {
-                Log.d("TAG", "DetailsScreen: error")
-                RetryImage(viewModel, context, lat, lon)
+                DetailsScreenOffline(lat,lon,viewModel)
             }
         }
     } else if (internet.value && application.reStarted) {
@@ -192,7 +186,8 @@ fun DetailsScreen(lat:Double,lon:Double,navController: NavHostController) {
 @Composable
 fun DetailsScreenOffline(
     lat: Double,
-    lon: Double
+    lon: Double,
+    dailyViewModel: DailyDataViewModel? = null
 ) {
     val context = LocalContext.current
     val viewModel: FavLocationsViewModel = viewModel(
@@ -211,42 +206,47 @@ fun DetailsScreenOffline(
         viewModel.getFavDetails(lon, lat)
     }
 
-    if (response.value == Response.Success && favDetails.value != null) {
-        val details = favDetails.value!!
-        val temp = details.currentWeather.temp
-        val feelLike = details.currentWeather.feelLike
-        val weather = details.currentWeather.weather
-        val location = details.location
-        val state = details.currentWeather.state
-        val todayDetails = DailyDetails(
-            details.currentWeather.pressure, details.currentWeather.humidity,
-            details.currentWeather.speed, details.currentWeather.cloud
-        )
-        val hourlyList = details.hourlyWeather
-        val daysList = details.dailyWeather
-        val arabicData = details.arabicData
+    when(response.value) {
+        is Response.Success -> {
+            if (favDetails.value != null) {
 
-        Log.d("TAG", "Hourly List Size: ${arabicData.size}")
-        Log.d("TAG", "Daily List Size: ${daysList.size}")
-        Log.d("DetailsScreenOffline", "Daily List Size: ${daysList.size}")
-
-        WeatherSections(
-            dataViewModel,
-            context,
-            lat,
-            lon,
-            weather,
-            feelLike,
-            state,
-            temp,
-            location,
-            hourlyList,
-            todayDetails,
-            daysList,
-            arabicData
-        )
-    } else {
-        Log.d("TAG", "Waiting for response or favDetails is null...")
+                val details = favDetails.value!!
+                val temp = details.currentWeather.temp
+                val feelLike = details.currentWeather.feelLike
+                val weather = details.currentWeather.weather
+                val location = details.location
+                val state = details.currentWeather.state
+                val todayDetails = DailyDetails(
+                    details.currentWeather.pressure, details.currentWeather.humidity,
+                    details.currentWeather.speed, details.currentWeather.cloud
+                )
+                val hourlyList = details.hourlyWeather
+                val daysList = details.dailyWeather
+                val arabicData = details.arabicData
+                WeatherSections(
+                    dataViewModel,
+                    context,
+                    lat,
+                    lon,
+                    weather,
+                    feelLike,
+                    state,
+                    temp,
+                    location,
+                    hourlyList,
+                    todayDetails,
+                    daysList,
+                    arabicData
+                )
+            }
+        }
+        is Response.Loading -> Log.d("TAG", "DetailsScreenOffline: Waiting ...")
+        is Response.Failure -> {
+            Log.d("TAG", "DetailsScreen: error")
+            RetryImage(dailyViewModel!!, context, lat, lon)
+        }
     }
+
+
 
 }

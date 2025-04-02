@@ -25,7 +25,8 @@ interface FavLocationsDao{
     @Query("SELECT * FROM fav_details WHERE ABS(lon - :lon) < 0.000001 AND ABS(lat - :lat) < 0.000001")
     fun getFavDetails(lon: Double, lat: Double): Flow<FavDetails>
 
-    @Query("DELETE FROM fav_details WHERE lon = :lon AND lat = :lat")
-    suspend fun deleteFavDetails(lon: Double, lat: Double):Int
+    @Query("DELETE FROM fav_details WHERE ABS(lon - :lon) < 0.00001 AND ABS(lat - :lat) < 0.00001")
+    suspend fun deleteFavDetails(lon: Double, lat: Double): Int
+
 
 }

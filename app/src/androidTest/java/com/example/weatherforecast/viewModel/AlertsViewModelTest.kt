@@ -26,7 +26,7 @@ import org.junit.Test
 class AlertsViewModelTest{
     private lateinit var fakeRepo: AlertsRepository
     private lateinit var viewModel: AlertsViewModel
-    val alert = AlertsData("","","",0.0,0.0,true)
+    val alert = AlertsData("","","",0.0,0.0,true,"")
 
 
     @get:Rule

@@ -68,7 +68,6 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
          viewModelScope.launch(Dispatchers.IO + handle) {
              try {
                  val result = favLocationsRepository.insertFav(location)
-                 Log.d("ViewModel", "Insert result: $result")
 
                  if (result > 0) {
                      mutableLocResponse.value = Response.Success
@@ -105,7 +104,7 @@ class FavLocationsViewModel(private val favLocationsRepository: IFavLocationsRep
     }
     fun deleteLocationDetail(lat: Double, lon: Double) {
         viewModelScope.launch(Dispatchers.IO + handle) {
-            val result2 = favLocationsRepository.deleteFavDetails(lat, lon)
+            val result2 = favLocationsRepository.deleteFavDetails(lon, lat)
             if (result2 > 0) {
                 mutableDetailsResponse.value = Response.Success
             } else {

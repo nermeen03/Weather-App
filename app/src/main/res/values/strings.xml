@@ -44,7 +44,7 @@
     <string name="dismiss">Dismiss</string>
     <string name="problem_in_the_api">Couldn\'t fetch current weather, A problem occurred in the API.</string>
     <string name="the_temperature_at">"The temperature at "</string>
-    <string name="is">is</string>
+    <string name="is">is </string>
     <string name="but_it_feels_like">", but it feels like "</string>
     <string name="cloud_coverage">". Cloud coverage: "</string>
     <string name="error_in_alarm">An error occurred while processing the alarm.</string>

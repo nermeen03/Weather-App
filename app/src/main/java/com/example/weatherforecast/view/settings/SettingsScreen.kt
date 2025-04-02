@@ -26,7 +26,6 @@ import com.example.weatherforecast.MainActivity
 import com.example.weatherforecast.MyApplication
 import com.example.weatherforecast.R
 import com.example.weatherforecast.view.navigation.ScreenRoute
-import java.util.Locale
 
 @Composable
 fun SettingsScreen(navController: NavHostController) {
@@ -92,9 +91,9 @@ fun SettingsScreen(navController: NavHostController) {
 
         Row(modifier = Modifier.fillMaxWidth()) {
             listOf(
-                stringResource(R.string.kelvin) to "K",
-                stringResource(R.string.celsius) to "C",
-                stringResource(R.string.fahrenheit) to "F"
+                stringResource(R.string.kelvin) to "°K",
+                stringResource(R.string.celsius) to "°C",
+                stringResource(R.string.fahrenheit) to "°F"
             ).forEach { (name, unit) ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -153,6 +152,7 @@ fun SettingsScreen(navController: NavHostController) {
 
         Row(modifier = Modifier.fillMaxWidth()) {
             listOf(
+                stringResource(R.string.system_default) to "def",
                 stringResource(R.string.english) to "en",
                 stringResource(R.string.arabic) to "ar"
             ).forEach { (langName, langCode) ->
@@ -161,7 +161,7 @@ fun SettingsScreen(navController: NavHostController) {
                     modifier = Modifier.weight(1f)
                 ) {
                     RadioButton(
-                        selected = Locale.getDefault().language == langCode,
+                        selected = application.getCurrentLanguage(context) == langCode,
                         onClick = {
                             application.setLanguage(context, langCode)
                             application.reStarted = true
@@ -178,6 +178,7 @@ fun SettingsScreen(navController: NavHostController) {
                 }
             }
         }
+
     }
 
 }

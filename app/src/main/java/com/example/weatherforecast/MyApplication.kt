@@ -31,17 +31,19 @@ class MyApplication : Application() {
     val currentLocationName: StateFlow<String> = _mutableCurrentLocationName.asStateFlow()
     private val _mutableCurrentLocationArabicName = MutableStateFlow("")
     val currentLocationArabicName: StateFlow<String> = _mutableCurrentLocationArabicName.asStateFlow()
-    private val _mutableTemp = MutableStateFlow("K")
+    private val _mutableTemp = MutableStateFlow("°K")
     val temp: StateFlow<String> = _mutableTemp.asStateFlow()
     private val _mutableWind = MutableStateFlow("mps")
     val wind: StateFlow<String> = _mutableWind.asStateFlow()
 
+    private lateinit var systemLang:String
 
     var reStarted = false
     val home = MutableStateFlow(false)
 
     override fun onCreate() {
         super.onCreate()
+        systemLang = this.resources.configuration.locales.get(0).language
         sharedPreferences = applicationContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         isInternetAvailable(this)
     }
@@ -52,8 +54,14 @@ class MyApplication : Application() {
         return savedLang?:"en"
     }
     fun setLanguage(context: Context, langCode: String) {
-        val locale = Locale(langCode)
+        val locale = when (langCode) {
+            "def" -> Locale(systemLang)
+            else -> Locale(langCode)
+        }
+        Log.i("TAG", "setLanguage: ${locale.language}")
+
         Locale.setDefault(locale)
+
 
         val config = Configuration(context.resources.configuration)
         config.setLocale(locale)
@@ -170,8 +178,8 @@ class MyApplication : Application() {
     }
     fun convertTemperature(kelvin: Double): String? {
         val result = when (_mutableTemp.value) {
-            "Celsius", "C", "°م" -> kelvin - 273.15
-            "Fahrenheit", "F", "ف" -> ((kelvin - 273.15) * 9 / 5) + 32
+            "Celsius", "°C", "°م" -> kelvin - 273.15
+            "Fahrenheit", "°F", "°ف" -> ((kelvin - 273.15) * 9 / 5) + 32
             else -> kelvin
         }
         val formattedResult = String.format(Locale.ENGLISH, "%.2f", result).toDouble()
@@ -191,9 +199,9 @@ class MyApplication : Application() {
         val result = when (_mutableTemp.value) {
             "Celsius" -> getString(R.string.celsius)
             "Fahrenheit" -> getString(R.string.fahrenheit)
-            "K" -> "ك"
-            "F" -> "ف"
-            "C" -> "°م"
+            "°K" -> "°ك"
+            "°F" -> "°ف"
+            "°C" -> "°م"
             else -> this.getString(R.string.kelvin)
         }
         return result

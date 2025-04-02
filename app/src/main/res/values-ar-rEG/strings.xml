@@ -5,8 +5,8 @@
     <string name="feels_like">يشعر كأنها</string>
     <string name="today">اليوم</string>
     <string name="c">°م</string>
-    <string name="k">ك</string>
-    <string name="f">ف</string>
+    <string name="k">°ك</string>
+    <string name="f">°ف</string>
     <string name="hourly_forecast">توقعات ساعية</string>
     <string name="today_details">تفاصيل اليوم</string>
     <string name="dash">--</string>
@@ -80,6 +80,7 @@
     <string name="m_s">م/ث</string>
     <string name="mph">ميل/س</string>
     <string name="language">اللغة</string>
+    <string name="system_default">افتراضي</string>
     <string name="english">الإنجليزية</string>
     <string name="arabic">العربية</string>
     <string name="home">الرئيسية</string>
@@ -95,5 +96,9 @@
     <string name="no_offline_data_was_saved_for_this_location">لم يتم حفظ أي بيانات غير متصلة لهذا الموقع</string>
     <string name="offline_details_for_this_location_was_saved">تم حفظ تفاصيل غير متصلة لهذا الموقع</string>
     <string name="add_alert">إضافة تنبيه</string>
+    <string name="set_duration">تحديد المدة</string>
+    <string name="snoozed_alarm_message">تم تأجيل التنبيه</string>
+    <string name="snooze">غفوة</string>
+
 
 </resources>

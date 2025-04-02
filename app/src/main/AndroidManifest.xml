@@ -29,7 +29,8 @@
         <meta-data android:name="org.osmdroid.config" android:value="true"/>
         <receiver
             android:name=".view.alert.AlarmReceiver"
-            android:exported="true"
+            android:enabled="true"
+            android:exported="false"
             android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
 
             <intent-filter>

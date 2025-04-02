@@ -325,12 +325,12 @@ fun ChooseAlertDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(onClick = { datePickerDialog.show() }) {
-                    Text(if (selectedDate.isEmpty()) stringResource(R.string.select_date) else stringResource(R.string.date) +application.convertDateToArabic(selectedDate))
+                    Text(if (selectedDate.isEmpty()) stringResource(R.string.select_date) else stringResource(R.string.date) + application.convertDateToArabic(selectedDate))
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(onClick = { timePickerDialog.show() }) {
-                    Text(if (selectedTime.isEmpty()) stringResource(R.string.select_time) else stringResource(R.string.time) +selectedTime)
+                    Text(if (selectedTime.isEmpty()) stringResource(R.string.select_time) else stringResource(R.string.time) + selectedTime)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -361,48 +361,44 @@ fun ChooseAlertDialog(
                         Text(stringResource(R.string.notification))
                     }
                 }
-                if (selectedAlertType == "Alarm") {
-                    Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        DropdownSelector(
-                            label = stringResource(R.string.minutes),
-                            options = (0..10).toList(),
-                            selectedOption = selectedMinutes,
-                            onOptionSelected = { selectedMinutes = it }
-                        )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(stringResource(R.string.set_duration), fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    DropdownSelector(
+                        label = stringResource(R.string.minutes),
+                        options = (0..10).toList(),
+                        selectedOption = selectedMinutes,
+                        onOptionSelected = { selectedMinutes = it }
+                    )
 
-                        DropdownSelector(
-                            label = stringResource(R.string.seconds),
-                            options = (0..59).toList(),
-                            selectedOption = selectedSeconds,
-                            onOptionSelected = { selectedSeconds = it }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(stringResource(R.string.total_duration) +selectedMinutes + stringResource(R.string.min) + selectedSeconds + stringResource(R.string.sec) )
+                    DropdownSelector(
+                        label = stringResource(R.string.seconds),
+                        options = (0..59).toList(),
+                        selectedOption = selectedSeconds,
+                        onOptionSelected = { selectedSeconds = it }
+                    )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(stringResource(R.string.total_duration) + selectedMinutes + stringResource(R.string.min) + selectedSeconds + stringResource(R.string.sec))
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(onClick = {
                     if (selectedDate.isNotEmpty() && selectedTime.isNotEmpty()) {
                         if (calendar.timeInMillis > System.currentTimeMillis()) {
-                            val alertData = AlertsData(selectedDate,selectedTime,location,lat,lon,selectedAlertType == "Alarm",locArabic)
-                            onConfirm(calendar.timeInMillis, selectedAlertType == "Alarm",alertData,totalMillis)
+                            val alertData = AlertsData(selectedDate, selectedTime, location, lat, lon, selectedAlertType == "Alarm", locArabic)
+                            onConfirm(calendar.timeInMillis, selectedAlertType == "Alarm", alertData, totalMillis)
                             onDismiss()
                         } else {
-                            Toast.makeText(context,
-                                context.getString(R.string.select_a_future_time), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.select_a_future_time), Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Toast.makeText(context,
-                            context.getString(R.string.select_date_and_time_first), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.select_date_and_time_first), Toast.LENGTH_SHORT).show()
                     }
                 }) {
                     Text(text = stringResource(R.string.set_alert))
@@ -410,6 +406,7 @@ fun ChooseAlertDialog(
             }
         }
     )
+
 }
 
 

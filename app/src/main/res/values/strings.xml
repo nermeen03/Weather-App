@@ -4,8 +4,8 @@
     <string name="feels_like">Feels like</string>
     <string name="today">Today</string>
     <string name="c">°C</string>
-    <string name="k">K</string>
-    <string name="f">F</string>
+    <string name="k">°K</string>
+    <string name="f">°F</string>
     <string name="hourly_forecast">Hourly Forecast</string>
     <string name="today_details">Today Details</string>
     <string name="dash">--</string>
@@ -79,6 +79,7 @@
     <string name="m_s">m/s</string>
     <string name="mph">mph</string>
     <string name="language">Language</string>
+    <string name="system_default">Default</string>
     <string name="english">English</string>
     <string name="arabic">Arabic</string>
     <string name="home">Home</string>
@@ -94,4 +95,7 @@
     <string name="no_offline_data_was_saved_for_this_location">No offline data was saved for this location</string>
     <string name="offline_details_for_this_location_was_saved">Offline details for this location was saved</string>
     <string name="add_alert">add alert</string>
+    <string name="set_duration">Set Duration</string>
+    <string name="snoozed_alarm_message">Snoozed Alarm Message</string>
+    <string name="snooze">Snooze</string>
 </resources>

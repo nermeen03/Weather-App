@@ -31,8 +31,8 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (context == null) return
 
-
         val isAlarm = intent?.getBooleanExtra("IS_ALARM", false) ?: false
+        val isSnooze = intent?.getBooleanExtra("IS_SNOOZE", false) ?: false
         val date = intent?.getStringExtra("DATE") ?: ""
         val time = intent?.getStringExtra("TIME") ?: ""
         val loc = intent?.getStringExtra("LocationArabic") ?: ""
@@ -41,12 +41,11 @@ class AlarmReceiver : BroadcastReceiver() {
         val lon = intent?.getDoubleExtra("LON", 0.0) ?: 0.0
         val duration = intent?.getLongExtra("DURATION", 30_000) ?: 30_000
 
-        val data = AlertsData(date, time, loc, lat, lon,isAlarm,arabicLoc)
+        val data = AlertsData(date, time, loc, lat, lon, isAlarm, arabicLoc)
         val requestCode = getUniqueRequestCode(data)
 
         val alertsDao = AlertsDataBase.getInstance(context).getAlertsDao()
         val repository = AlertsRepository.getRepository(AlertsLocalDataSource(alertsDao))
-
         val dataRepository = DailyDataRepository(DailyRemoteDataSource())
 
         var message: String
@@ -60,11 +59,14 @@ class AlarmReceiver : BroadcastReceiver() {
             try {
                 message = withContext(Dispatchers.IO) {
                     val existingAlert = repository.getAlert(date, time, loc)
-                    if (existingAlert == null) {
+
+                    if (existingAlert == null && !isSnooze) {
                         Log.d("AlarmReceiver", "Alert does not exist. Skipping notification.")
                         return@withContext ""
                     }
-                    repository.delete(date, time, loc)
+
+                    if (!isSnooze) repository.delete(date, time, loc)
+
                     val result = try {
                         dataRepository.getDailyData(lat, lon).firstOrNull()
                     } catch (e: Exception) {
@@ -76,11 +78,11 @@ class AlarmReceiver : BroadcastReceiver() {
                         val temp = result.list[0].main.temp
                         val feel = result.list[0].main.feels_like
                         val cloud = result.list[0].clouds.all
-                        context.getString(R.string.the_temperature_at)+ loc +
-                                context.getString(R.string.`is`)+temp+
-                                context.getString(R.string.c)+ context.getString(R.string.but_it_feels_like)+
-                                feel+context.getString(R.string.c)+ context.getString(R.string.cloud_coverage)+
-                                cloud+context.getString(R.string.percent)
+                        context.getString(R.string.the_temperature_at) + loc +
+                                context.getString(R.string.`is`) + temp +
+                                context.getString(R.string.c) + context.getString(R.string.but_it_feels_like) +
+                                feel + context.getString(R.string.c) + context.getString(R.string.cloud_coverage) +
+                                cloud + context.getString(R.string.percent)
                     } else {
                         context.getString(R.string.problem_in_the_api)
                     }
@@ -105,20 +107,21 @@ class AlarmReceiver : BroadcastReceiver() {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             putExtra("MESSAGE", message)
                             putExtra("DURATION", duration)
+                            putExtra("IS_SNOOZE", isSnooze)
                         }
                         context.applicationContext.startActivity(alarmIntent)
                     }
-                }
-                else {
+                } else {
                     withContext(Dispatchers.Main) {
-                        showNotification(context, message, requestCode)
+                        showNotification(context, message, requestCode,duration)
                     }
                 }
             }
         }
     }
 
-    private fun showNotification(context: Context, message: String, requestCode: Int) {
+
+    private fun showNotification(context: Context, message: String, requestCode: Int, duration: Long) {
         val notificationManager = ContextCompat.getSystemService(context, NotificationManager::class.java) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -141,5 +144,10 @@ class AlarmReceiver : BroadcastReceiver() {
             .build()
 
         notificationManager.notify(requestCode, notification)
+
+        // Cancel the notification after `duration` milliseconds
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            notificationManager.cancel(requestCode)
+        }, duration)
     }
 }
